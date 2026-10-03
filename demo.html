@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect CRM — Dual-Portal Interactive Demo with Calendar Creator & Excel Export</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f8fafc; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- TOP HEADER / PORTAL SWITCHER -->
+  <header class="bg-slate-900 text-white px-6 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between sticky top-0 z-50 shadow-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow">
+        <i data-lucide="calendar-check" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <span class="font-bold text-base tracking-wide text-white">Connect CRM</span>
+        <span class="text-xs text-blue-400 ml-2 px-2 py-0.5 rounded bg-blue-950/60 border border-blue-800/80">Interactive Demo Portal</span>
+      </div>
+    </div>
+
+    <!-- Dual Portal Toggle Buttons -->
+    <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700 shadow-inner">
+      <button id="btnAgencyView" onclick="switchPortal('agency')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
+        <i data-lucide="shield" class="w-4 h-4"></i>
+        <span>Agency Admin Portal</span>
+      </button>
+      <button id="btnClientView" onclick="switchPortal('client')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white">
+        <i data-lucide="user-check" class="w-4 h-4"></i>
+        <span id="clientPortalToggleText">Client Portal (Nelson Luxe Hospital)</span>
+      </button>
+    </div>
+
+    <!-- Active Client Selector -->
+    <div class="flex items-center space-x-2 text-xs">
+      <span class="text-slate-400 font-medium">Active Client:</span>
+      <select id="clientSelector" onchange="onSelectClient(this.value)" class="bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-blue-500 focus:outline-none">
+        <option value="nelson">Nelson Luxe Hospital (30 Posts | 20 Reels)</option>
+        <option value="kohinoor">Kohinoor TEZ (15 Posts | 10 Reels)</option>
+        <option value="neuro">Central Brain & Spine Hospital (20 Posts | 10 Reels)</option>
+        <option value="vibetara">Vibetara (15 Posts | 10 Reels)</option>
+      </select>
+    </div>
+  </header>
+
+
+  <!-- ========================================================================= -->
+  <!-- PORTAL 1: AGENCY ADMIN PORTAL -->
+  <!-- ========================================================================= -->
+  <main id="agencyPortal" class="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- Top Management & Workload Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <!-- Card 1: Deliverables Meter -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Monthly Deliverable Target</span>
+          <i data-lucide="target" class="w-4 h-4 text-blue-600"></i>
+        </div>
+        <div class="flex items-baseline space-x-2">
+          <span class="text-2xl font-bold text-slate-900" id="agencyProgressText">24 / 30</span>
+          <span class="text-xs text-emerald-600 font-semibold" id="agencyPercentageText">(80% Ready)</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2 mt-3 overflow-hidden">
+          <div id="agencyProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 80%"></div>
+        </div>
+        <div class="flex justify-between text-[11px] text-slate-400 mt-2" id="agencyQuotaDetails">
+          <span>Reels: 16/20</span>
+          <span>Creatives: 24/30</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Team Workload (Rahul - Sr. Designer) -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Rahul (Sr. Designer)</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500" title="Active"></span>
+        </div>
+        <div class="flex items-baseline space-x-2">
+          <span class="text-xl font-bold text-slate-900">22 Done</span>
+          <span class="text-xs text-slate-500">/ 25 Assigned</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2 mt-3 overflow-hidden">
+          <div class="bg-emerald-500 h-2 rounded-full" style="width: 88%"></div>
+        </div>
+        <span class="text-[11px] text-slate-400 mt-2">3 pending QA • Workload: 88%</span>
+      </div>
+
+      <!-- Card 3: Team Workload (Sneha - Video Editor) -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between text-slate-500 mb-2">
+          <span class="text-xs font-medium uppercase tracking-wider">Sneha (Video Editor)</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500" title="Active"></span>
+        </div>
+        <div class="flex items-baseline space-x-2">
+          <span class="text-xl font-bold text-slate-900">14 Reels</span>
+          <span class="text-xs text-slate-500">/ 16 Assigned</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2 mt-3 overflow-hidden">
+          <div class="bg-blue-600 h-2 rounded-full" style="width: 87%"></div>
+        </div>
+        <span class="text-[11px] text-slate-400 mt-2">2 rendering • S3 direct sync</span>
+      </div>
+
+      <!-- Card 4: Quick Action Panel -->
+      <div class="bg-gradient-to-br from-slate-900 to-blue-950 p-5 rounded-2xl text-white shadow flex flex-col justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-blue-300 uppercase tracking-widest">Calendar Operations</span>
+          <p class="text-xs text-slate-300 mt-0.5" id="activeCalendarLabel">October 2026 Active</p>
+        </div>
+        <div class="space-y-2 mt-3">
+          <button onclick="openCreateCalendarModal()" class="w-full py-1.5 px-3 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow">
+            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+            <span>Create New Month Calendar</span>
+          </button>
+          <button onclick="exportCurrentCalendarToExcel()" class="w-full py-1.5 px-3 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Export to Excel (.CSV)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Content Schedule Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+      
+      <!-- Toolbar Header -->
+      <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold">
+            <i data-lucide="calendar" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <span id="calendarHeaderTitle">Nelson Luxe Hospital</span>
+              <span class="text-xs font-normal px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200" id="calendarHeaderMonth">October 2026</span>
+            </h2>
+            <p class="text-xs text-slate-500" id="calendarPillarsBrief">Pillars: Women’s Health, Doctor Branding, Hospital Trust, Care Beyond Treatment</p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-3">
+          <!-- Filter format -->
+          <div class="flex items-center space-x-1 text-xs text-slate-500">
+            <span>Filter:</span>
+            <select onchange="filterSchedule(this.value)" class="border border-slate-200 rounded-lg px-2 py-1 text-xs bg-slate-50 focus:outline-none">
+              <option value="ALL">All Formats</option>
+              <option value="IMAGE">Images Only</option>
+              <option value="REEL">Reels Only</option>
+              <option value="CAROUSEL">Carousels Only</option>
+            </select>
+          </div>
+
+          <!-- Add Post Button -->
+          <button onclick="openAddPostModal()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow transition">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Add Post</span>
+          </button>
+
+          <!-- Export Excel Button -->
+          <button onclick="exportCurrentCalendarToExcel()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow transition" title="Export this schedule directly to Excel">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            <span>Export Excel</span>
+          </button>
+
+          <!-- Submit Batch to Client -->
+          <button onclick="submitBatchToClient()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 shadow transition">
+            <i data-lucide="send" class="w-3.5 h-3.5 text-blue-400"></i>
+            <span>Submit to Client</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Schedule Table (Matching Excel Column Structure Exactly) -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold select-none">
+              <th class="py-3 px-4 w-12 text-center">Sr.</th>
+              <th class="py-3 px-4 w-28">Date & Day</th>
+              <th class="py-3 px-4 w-36">Special Day</th>
+              <th class="py-3 px-4 w-32">Content Pillar</th>
+              <th class="py-3 px-4 w-24">Type</th>
+              <th class="py-3 px-4">Visual Direction / Brief</th>
+              <th class="py-3 px-4">Content Copy / Reel Bytes</th>
+              <th class="py-3 px-4 w-28 text-center">Media (S3)</th>
+              <th class="py-3 px-4 w-28 text-center">Status</th>
+              <th class="py-3 px-4 w-20 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="agencyTableBody" class="divide-y divide-slate-100">
+            <!-- Dynamically rendered via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer Bar -->
+      <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+        <span id="tableItemCountLabel">Showing 5 items</span>
+        <div class="flex items-center space-x-3">
+          <span class="flex items-center space-x-1 text-emerald-600 font-medium"><i data-lucide="check" class="w-3.5 h-3.5"></i><span>Auto-saved to Cloud</span></span>
+          <button onclick="exportCurrentCalendarToExcel()" class="text-blue-600 hover:underline font-semibold flex items-center space-x-1">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Download Existing Excel Format (.csv)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- ========================================================================= -->
+  <!-- PORTAL 2: DEDICATED CLIENT PORTAL -->
+  <!-- ========================================================================= -->
+  <main id="clientPortal" class="flex-1 flex flex-col p-6 max-w-7xl mx-auto w-full space-y-6 hidden">
+
+    <!-- Client Header -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-blue-900 text-white flex items-center justify-center font-bold text-xl shadow" id="clientPortalAvatar">
+          N
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold text-slate-900" id="clientPortalName">Nelson Luxe Hospital</h1>
+            <span class="px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider rounded bg-emerald-100 text-emerald-800">Verified Client</span>
+          </div>
+          <p class="text-xs text-slate-500">Monthly Social Media Content Review & Approval Portal</p>
+        </div>
+      </div>
+
+      <!-- Quota Status & Actions -->
+      <div class="flex items-center space-x-4 text-xs">
+        <div class="text-right">
+          <span class="text-slate-400 block">Content Review Status</span>
+          <span class="text-sm font-bold text-slate-800" id="clientPortalProgress">Reviewed: 4 of 5 Items</span>
+        </div>
+        <div class="h-8 w-px bg-slate-200"></div>
+        <button onclick="exportCurrentCalendarToExcel()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition flex items-center space-x-1.5">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Export Calendar</span>
+        </button>
+        <button onclick="approveEntireCalendar()" id="btnClientApproveAll" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow transition flex items-center space-x-1.5">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+          <span>Approve Entire Calendar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- S3 Storage Notice (No Google Drive Hassle) -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 px-4 flex items-center justify-between text-xs text-blue-900">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="sparkles" class="w-4 h-4 text-blue-600 flex-shrink-0"></i>
+        <span><strong>Frictionless Cloud Streaming:</strong> You don't need a Google Drive account or permission access. All 4K Reels, Carousels, and Creatives play instantly in your browser!</span>
+      </div>
+      <span class="text-blue-700 font-semibold">Zero Buffering • Fast Preview</span>
+    </div>
+
+    <!-- Client Cards View (Visual Review Grid) -->
+    <div id="clientCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Injected dynamically via JS -->
+    </div>
+  </main>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: CREATE NEW CALENDAR MODAL (Agency) -->
+  <!-- ========================================================================= -->
+  <div id="modalCreateCalendar" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 class="text-sm font-bold text-slate-800 flex items-center space-x-2">
+          <i data-lucide="calendar-plus" class="w-4 h-4 text-blue-600"></i>
+          <span>Create New Monthly Calendar</span>
+        </h3>
+        <button onclick="closeCreateCalendarModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Select Client</label>
+          <select id="modalCalClient" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="nelson">Nelson Luxe Hospital</option>
+            <option value="kohinoor">Kohinoor TEZ</option>
+            <option value="neuro">Central Brain & Spine Hospital</option>
+            <option value="vibetara">Vibetara</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Month</label>
+            <select id="modalCalMonth" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Year</label>
+            <input type="number" id="modalCalYear" value="2026" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Target Creatives Quota</label>
+            <input type="number" id="modalCalCreatives" value="30" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Target Reels Quota</label>
+            <input type="number" id="modalCalReels" value="20" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Special Client Requirements / Brief</label>
+          <textarea id="modalCalBrief" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Focus on Breast Cancer Awareness and doctor branding..."></textarea>
+        </div>
+      </div>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-2 text-xs">
+        <button onclick="closeCreateCalendarModal()" class="px-3 py-1.5 text-slate-600 font-medium">Cancel</button>
+        <button onclick="executeCreateCalendar()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow transition">Generate Calendar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: ADD NEW POST MODAL -->
+  <!-- ========================================================================= -->
+  <div id="modalAddPost" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 class="text-sm font-bold text-slate-800 flex items-center space-x-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i>
+          <span>Add Daily Content Slot</span>
+        </h3>
+        <button onclick="closeAddPostModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-5 space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Target Date</label>
+            <input type="date" id="newPostDate" value="2026-10-06" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Media Format</label>
+            <select id="newPostType" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="REEL">REEL (Vertical Video)</option>
+              <option value="IMAGE">IMAGE (Single Creative)</option>
+              <option value="CAROUSEL">CAROUSEL (Multi-Slide)</option>
+              <option value="STORY">STORY (Daily Update)</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Special Day (Festival/Event)</label>
+            <input type="text" id="newPostSpecialDay" placeholder="e.g. Indian Air Force Day" class="w-full border border-slate-300 rounded-lg p-2">
+          </div>
+          <div>
+            <label class="font-semibold text-slate-700 block mb-1">Content Pillar</label>
+            <input type="text" id="newPostPillar" value="Doctor Branding" class="w-full border border-slate-300 rounded-lg p-2">
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Visual Direction / Brief</label>
+          <input type="text" id="newPostVisual" placeholder="e.g. Doctor speaking on camera highlighting 3 health warning signs" class="w-full border border-slate-300 rounded-lg p-2">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Script / Reel Bytes (Hook - Body - CTA)</label>
+          <textarea id="newPostScript" rows="2" placeholder="e.g. Hook: What should you do when you notice an unusual symptom? Body: 3 steps... CTA: Consult doctor." class="w-full border border-slate-300 rounded-lg p-2"></textarea>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Caption & Hashtags</label>
+          <input type="text" id="newPostCaption" placeholder="e.g. Early detection saves lives. #NelsonHospital #HealthAwareness" class="w-full border border-slate-300 rounded-lg p-2">
+        </div>
+      </div>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-2 text-xs">
+        <button onclick="closeAddPostModal()" class="px-3 py-1.5 text-slate-600 font-medium">Cancel</button>
+        <button onclick="saveNewPostItem()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow transition">Save to Calendar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: S3 VIDEO / CAROUSEL STREAMING PLAYER -->
+  <!-- ========================================================================= -->
+  <div id="modalPlayer" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center space-x-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span id="playerModalTitle" class="text-sm font-bold text-slate-800">Media Preview</span>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-800">Cloud Storage Stream (S3/R2)</span>
+        </div>
+        <button onclick="closePlayerModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="p-6 bg-slate-950 flex flex-col items-center justify-center min-h-[360px]" id="playerModalBody">
+        <!-- Injected via JS -->
+      </div>
+
+      <div class="px-5 py-3 border-t border-slate-100 bg-white flex items-center justify-between text-xs text-slate-500">
+        <span>Instant scrubbing • Byte-range HTTP 206 streaming</span>
+        <button onclick="closePlayerModal()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-medium">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: CLIENT REVISION / SUGGESTION MODAL -->
+  <!-- ========================================================================= -->
+  <div id="modalSuggestion" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 class="text-sm font-bold text-slate-800 flex items-center space-x-2">
+          <i data-lucide="message-square-plus" class="w-4 h-4 text-blue-600"></i>
+          <span>Suggest Changes for this Item</span>
+        </h3>
+        <button onclick="closeSuggestionModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Select Update Category</label>
+          <div class="grid grid-cols-3 gap-2">
+            <label class="border border-slate-200 p-2 rounded-lg text-center cursor-pointer hover:bg-slate-50 flex flex-col items-center">
+              <input type="radio" name="suggCat" checked class="text-blue-600">
+              <span class="mt-1 font-medium">Visual Design</span>
+            </label>
+            <label class="border border-slate-200 p-2 rounded-lg text-center cursor-pointer hover:bg-slate-50 flex flex-col items-center">
+              <input type="radio" name="suggCat" class="text-blue-600">
+              <span class="mt-1 font-medium">Script / Text</span>
+            </label>
+            <label class="border border-slate-200 p-2 rounded-lg text-center cursor-pointer hover:bg-slate-50 flex flex-col items-center">
+              <input type="radio" name="suggCat" class="text-blue-600">
+              <span class="mt-1 font-medium">Schedule Date</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-700 block mb-1">Your Detailed Feedback</label>
+          <textarea id="clientFeedbackInput" rows="3" class="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="e.g. Please update the doctor's designation in slide 2 to MD Pediatrics..."></textarea>
+        </div>
+      </div>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-2 text-xs">
+        <button onclick="closeSuggestionModal()" class="px-3 py-1.5 text-slate-600 font-medium">Cancel</button>
+        <button onclick="submitClientFeedback()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow transition">Submit Suggestion</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT STATE ENGINE & EXCEL EXPORTER -->
+  <!-- ========================================================================= -->
+  <script>
+    // State Store for Demo
+    const clientDataStore = {
+      nelson: {
+        id: "nelson",
+        name: "Nelson Luxe Hospital",
+        code: "NELSON",
+        month: "October",
+        year: 2026,
+        targetCreatives: 30,
+        targetReels: 20,
+        targetStories: 30,
+        pillars: "Women’s Health, Doctor Branding, Hospital Trust, Care Beyond Treatment",
+        items: [
+          {
+            srNo: 1,
+            date: "2026-10-01",
+            day: "Thursday",
+            specialDay: "Pink October Begins",
+            pillar: "Women’s Health",
+            type: "IMAGE",
+            visual: "Doctor/woman silhouette + pink ribbon + Nelson Luxe branding",
+            script: "Slide 1: Your health deserves attention. Don't ignore changes. Choose timely care.",
+            caption: "October is more than awareness. It is a reminder to listen to your body. #PinkOctober #NelsonLuxe",
+            status: "APPROVED",
+            mediaType: "image",
+            mediaUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80"
+          },
+          {
+            srNo: 2,
+            date: "2026-10-02",
+            day: "Friday",
+            specialDay: "Gandhi Jayanti",
+            pillar: "Doctor Branding",
+            type: "REEL",
+            visual: "Doctor talking directly to camera highlighting breast health points",
+            script: "Hook: One thing every woman should know about her health... 3 simple awareness points.",
+            caption: "Expert advice from Dr. Shalini. If you notice unusual changes, speak to a specialist. #DoctorTalks",
+            status: "READY QA",
+            mediaType: "reel",
+            mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+          },
+          {
+            srNo: 3,
+            date: "2026-10-03",
+            day: "Saturday",
+            specialDay: "—",
+            pillar: "Awareness",
+            type: "CAROUSEL",
+            visual: "5 Slides: Myth vs Fact on self-examination & screening habits",
+            script: "Slide 1: Breast cancer only happens after 50? Myth Busted. Age alone is no reason to delay.",
+            caption: "Break the myths. Choose timely evaluation with our specialists. #NelsonHospital",
+            status: "CHANGES REQ",
+            mediaType: "carousel",
+            mediaUrl: ""
+          },
+          {
+            srNo: 4,
+            date: "2026-10-04",
+            day: "Sunday",
+            specialDay: "—",
+            pillar: "Hospital Trust",
+            type: "REEL",
+            visual: "Suite room view & patient care experience walk-through",
+            script: "Ever wondered what patient-first healthcare feels like? Experience Nelson Luxe care.",
+            caption: "Care Beyond Treatment. Luxury comfort with world-class medical support. #HospitalStay",
+            status: "READY QA",
+            mediaType: "reel",
+            mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+          },
+          {
+            srNo: 5,
+            date: "2026-10-05",
+            day: "Monday",
+            specialDay: "World Smile Day",
+            pillar: "Care Beyond Treatment",
+            type: "IMAGE",
+            visual: "Smiling nursing staff with recovered patient testimonial quote",
+            script: "Their smiles are our greatest achievement. Compassionate healing every day.",
+            caption: "A warm smile is medicine in itself. Grateful for our patients' trust. #PatientSmiles",
+            status: "APPROVED",
+            mediaType: "image",
+            mediaUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80"
+          }
+        ]
+      },
+      kohinoor: {
+        id: "kohinoor",
+        name: "Kohinoor TEZ",
+        code: "KOHINOOR",
+        month: "October",
+        year: 2026,
+        targetCreatives: 15,
+        targetReels: 10,
+        targetStories: 30,
+        pillars: "Student Tips, Exam Hacks, Bumper Offers, Parent Trust",
+        items: [
+          {
+            srNo: 1,
+            date: "2026-10-01",
+            day: "Thursday",
+            specialDay: "New Month Goals",
+            pillar: "Student Tips",
+            type: "IMAGE",
+            visual: "Clean smart-study graphic for Class 5-12 students with Kohinoor Tez Notes",
+            script: "New Month. New Goals. Better Preparation. Class 5–12 smart study & quick revision.",
+            caption: "Make October your highest-scoring month! Order your Tez notes today. #KohinoorTez",
+            status: "APPROVED",
+            mediaType: "image",
+            mediaUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80"
+          },
+          {
+            srNo: 2,
+            date: "2026-10-02",
+            day: "Friday",
+            specialDay: "Gandhi Jayanti",
+            pillar: "Inspirational",
+            type: "IMAGE",
+            visual: "Gandhi Jayanti commemorative post with discipline quote for students",
+            script: "Be the change you wish to see in your results. Discipline + consistent practice.",
+            caption: "Happy Gandhi Jayanti! Empower your study journey with disciplined revision. #StudyMotivation",
+            status: "APPROVED",
+            mediaType: "image",
+            mediaUrl: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80"
+          },
+          {
+            srNo: 3,
+            date: "2026-10-04",
+            day: "Sunday",
+            specialDay: "Exam Countdown",
+            pillar: "Exam Hacks",
+            type: "REEL",
+            visual: "Student rushing with heavy books vs opening compact Tez pocket notes",
+            script: "Mid-term exams starting and syllabus still pending? Switch to Kohinoor Tez quick revision.",
+            caption: "No heavy books needed! Complete syllabus in half the time. #ExamHacks #TezNotes",
+            status: "READY QA",
+            mediaType: "reel",
+            mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+          }
+        ]
+      },
+      neuro: {
+        id: "neuro",
+        name: "Central Brain & Spine Hospital",
+        code: "NEURO",
+        month: "October",
+        year: 2026,
+        targetCreatives: 20,
+        targetReels: 10,
+        targetStories: 30,
+        pillars: "Neurosurgery, Spine Care, Advanced Diagnostics, Patient Recovery",
+        items: [
+          {
+            srNo: 1,
+            date: "2026-10-01",
+            day: "Thursday",
+            specialDay: "Hospital Branding",
+            pillar: "Neurosurgery",
+            type: "IMAGE",
+            visual: "Advanced neurosurgical theatre with precision medical equipment",
+            script: "Specialised brain & spine care backed by modern surgical expertise.",
+            caption: "Precision. Expertise. Compassionate Care. #CentralBrainHospital #SpineCare",
+            status: "APPROVED",
+            mediaType: "image",
+            mediaUrl: "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=800&q=80"
+          }
+        ]
+      },
+      vibetara: {
+        id: "vibetara",
+        name: "Vibetara",
+        code: "VIBETARA",
+        month: "October",
+        year: 2026,
+        targetCreatives: 15,
+        targetReels: 10,
+        targetStories: 30,
+        pillars: "Fashion, Festive Wear, Lifestyle, Offers",
+        items: [
+          {
+            srNo: 1,
+            date: "2026-10-01",
+            day: "Thursday",
+            specialDay: "Festive Season Launch",
+            pillar: "Festive Wear",
+            type: "CAROUSEL",
+            visual: "5 festive ethnic wear looks for upcoming Navratri & Diwali",
+            script: "Slide 1 to 5: Handpicked festive collection crafted for celebration.",
+            caption: "Get festive-ready with Vibetara's new festive catalogue! #VibetaraFashion",
+            status: "READY QA",
+            mediaType: "carousel",
+            mediaUrl: ""
+          }
+        ]
+      }
+    };
+
+    let activeClientKey = "nelson";
+    let activeFilter = "ALL";
+    let selectedItemForFeedback = null;
+
+    // Render Initial UI
+    window.onload = function() {
+      renderActiveClient();
+      lucide.createIcons();
+    };
+
+    // Client Switcher
+    function onSelectClient(clientKey) {
+      activeClientKey = clientKey;
+      renderActiveClient();
+    }
+
+    function renderActiveClient() {
+      const client = clientDataStore[activeClientKey];
+      if (!client) return;
+
+      // Update Header Text
+      document.getElementById('clientPortalToggleText').innerText = `Client Portal (${client.name})`;
+      document.getElementById('calendarHeaderTitle').innerText = client.name;
+      document.getElementById('calendarHeaderMonth').innerText = `${client.month} ${client.year}`;
+      document.getElementById('calendarPillarsBrief').innerText = `Pillars: ${client.pillars}`;
+      document.getElementById('activeCalendarLabel').innerText = `${client.month} ${client.year} Active`;
+
+      // Update Quotas
+      const approvedCount = client.items.filter(i => i.status === 'APPROVED').length;
+      const totalCount = client.items.length;
+      const pct = Math.round((approvedCount / (totalCount || 1)) * 100);
+
+      document.getElementById('agencyProgressText').innerText = `${approvedCount} / ${totalCount}`;
+      document.getElementById('agencyPercentageText').innerText = `(${pct}% Reviewed)`;
+      document.getElementById('agencyProgressBar').style.width = `${pct}%`;
+      document.getElementById('agencyQuotaDetails').innerHTML = `<span>Reels Target: ${client.targetReels}</span><span>Creatives Target: ${client.targetCreatives}</span>`;
+
+      // Render Table in Agency View
+      renderAgencyTable(client);
+
+      // Render Cards in Client View
+      renderClientCards(client);
+      
+      lucide.createIcons();
+    }
+
+    // Render Agency Table
+    function renderAgencyTable(client) {
+      const tbody = document.getElementById('agencyTableBody');
+      tbody.innerHTML = '';
+
+      let filteredItems = client.items;
+      if (activeFilter !== 'ALL') {
+        filteredItems = filteredItems.filter(i => i.type === activeFilter);
+      }
+
+      document.getElementById('tableItemCountLabel').innerText = `Showing ${filteredItems.length} items for ${client.name}`;
+
+      filteredItems.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+
+        // Badges
+        let typeBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">IMAGE</span>`;
+        if (item.type === 'REEL') typeBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">REEL</span>`;
+        if (item.type === 'CAROUSEL') typeBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">CAROUSEL</span>`;
+
+        let statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">APPROVED</span>`;
+        if (item.status === 'READY QA') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">READY QA</span>`;
+        if (item.status === 'CHANGES REQ') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">CHANGES REQ</span>`;
+        if (item.status === 'DRAFT') statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">DRAFT</span>`;
+
+        // Media Action Button
+        let mediaBtn = `
+          <button onclick="openMediaPreview('${item.mediaType}', '${item.mediaUrl}', '${item.visual}')" class="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 font-medium">
+            <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
+            <span>Preview</span>
+          </button>
+        `;
+
+        tr.innerHTML = `
+          <td class="py-3.5 px-4 font-mono text-center text-slate-400">${item.srNo < 10 ? '0' + item.srNo : item.srNo}</td>
+          <td class="py-3.5 px-4 font-medium text-slate-900">${item.date} <span class="text-slate-400 block text-[10px]">${item.day}</span></td>
+          <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-700 font-medium">${item.specialDay || '—'}</span></td>
+          <td class="py-3.5 px-4 font-medium text-slate-700">${item.pillar}</td>
+          <td class="py-3.5 px-4">${typeBadge}</td>
+          <td class="py-3.5 px-4 text-slate-600 max-w-xs truncate" title="${item.visual}">${item.visual}</td>
+          <td class="py-3.5 px-4 text-slate-600 italic max-w-xs truncate" title="${item.script}">${item.script}</td>
+          <td class="py-3.5 px-4 text-center">${mediaBtn}</td>
+          <td class="py-3.5 px-4 text-center">${statusBadge}</td>
+          <td class="py-3.5 px-4 text-center">
+            <button onclick="deletePostItem(${item.srNo})" class="text-slate-400 hover:text-rose-600 transition" title="Delete slot"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Render Client Cards
+    function renderClientCards(client) {
+      document.getElementById('clientPortalAvatar').innerText = client.name.charAt(0);
+      document.getElementById('clientPortalName').innerText = client.name;
+      const approvedCount = client.items.filter(i => i.status === 'APPROVED').length;
+      document.getElementById('clientPortalProgress').innerText = `Reviewed: ${approvedCount} of ${client.items.length} Items Approved`;
+
+      const container = document.getElementById('clientCardsContainer');
+      container.innerHTML = '';
+
+      client.items.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col";
+
+        let mediaThumbnail = '';
+        if (item.mediaType === 'image') {
+          mediaThumbnail = `
+            <div class="relative bg-slate-100 h-52 flex items-center justify-center overflow-hidden group cursor-pointer" onclick="openMediaPreview('image', '${item.mediaUrl}', '${item.pillar}')">
+              <img src="${item.mediaUrl}" alt="Creative" class="w-full h-full object-cover">
+              <div class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                ${item.type} • ${item.date}
+              </div>
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold space-x-1">
+                <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                <span>Preview High-Res</span>
+              </div>
+            </div>
+          `;
+        } else if (item.mediaType === 'reel') {
+          mediaThumbnail = `
+            <div class="relative bg-slate-900 h-52 flex items-center justify-center overflow-hidden group cursor-pointer" onclick="openMediaPreview('reel', '${item.mediaUrl}', '${item.pillar}')">
+              <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=800&q=80" alt="Video Thumb" class="w-full h-full object-cover opacity-70">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20"></div>
+              <div class="w-12 h-12 rounded-full bg-blue-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+                <i data-lucide="play" class="w-5 h-5 ml-0.5"></i>
+              </div>
+              <div class="absolute top-3 left-3 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                REEL (Vertical Video)
+              </div>
+              <div class="absolute bottom-3 left-3 right-3 text-white text-[11px] font-medium truncate">
+                ${item.script}
+              </div>
+            </div>
+          `;
+        } else {
+          mediaThumbnail = `
+            <div class="relative bg-slate-100 h-52 flex items-center justify-center overflow-hidden group cursor-pointer" onclick="openMediaPreview('carousel', '', '${item.pillar}')">
+              <img src="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80" alt="Carousel" class="w-full h-full object-cover">
+              <div class="absolute top-3 left-3 bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                CAROUSEL • 5 SLIDES
+              </div>
+              <div class="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                Click to Swipe
+              </div>
+            </div>
+          `;
+        }
+
+        let actionArea = '';
+        if (item.status === 'APPROVED') {
+          actionArea = `
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span class="text-slate-400">Approved by Client</span>
+              <span class="text-emerald-600 font-bold flex items-center space-x-1"><i data-lucide="check-check" class="w-4 h-4"></i><span>Locked</span></span>
+            </div>
+          `;
+        } else {
+          actionArea = `
+            <div class="pt-2 border-t border-slate-100 flex items-center space-x-2">
+              <button onclick="approvePostItem(${item.srNo})" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition shadow-sm">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>Approve Post</span>
+              </button>
+              <button onclick="openSuggestionModalForItem(${item.srNo})" class="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center justify-center space-x-1 transition">
+                <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Suggest Change</span>
+              </button>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          ${mediaThumbnail}
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wide">${item.pillar}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${item.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}">${item.status}</span>
+              </div>
+              <h3 class="text-sm font-bold text-slate-900 mt-1">${item.specialDay !== '—' ? item.specialDay : item.pillar + ' Post'}</h3>
+              <p class="text-xs text-slate-600 mt-1 line-clamp-2">${item.caption || item.script}</p>
+            </div>
+            ${actionArea}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Portal Switcher
+    function switchPortal(portal) {
+      const agencyMain = document.getElementById('agencyPortal');
+      const clientMain = document.getElementById('clientPortal');
+      const btnAgency = document.getElementById('btnAgencyView');
+      const btnClient = document.getElementById('btnClientView');
+
+      if (portal === 'agency') {
+        agencyMain.classList.remove('hidden');
+        clientMain.classList.add('hidden');
+        btnAgency.className = "flex items-center space-x-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
+        btnClient.className = "flex items-center space-x-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white";
+      } else {
+        agencyMain.classList.add('hidden');
+        clientMain.classList.remove('hidden');
+        btnClient.className = "flex items-center space-x-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
+        btnAgency.className = "flex items-center space-x-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white";
+      }
+      lucide.createIcons();
+    }
+
+    // Filter Schedule
+    function filterSchedule(val) {
+      activeFilter = val;
+      renderActiveClient();
+    }
+
+    // =========================================================================
+    // EXPORT TO EXCEL / CSV FEATURE (Matching Oct Calender 2026.xlsx format)
+    // =========================================================================
+    function exportCurrentCalendarToExcel() {
+      const client = clientDataStore[activeClientKey];
+      if (!client || !client.items.length) {
+        alert("No calendar items to export.");
+        return;
+      }
+
+      // Build CSV with UTF-8 BOM so Excel opens it with proper columns and special characters
+      let csvContent = '\uFEFF';
+      // Column Header Matching their production sheet
+      csvContent += 'Sr. No,Date,Days,Speacial Day,Content Pillar,Type,Visual Direction,Script / Reel Bytes,CAPTION,Status\n';
+
+      client.items.forEach(item => {
+        const clean = (str) => (str ? `"${str.toString().replace(/"/g, '""').replace(/\n/g, ' ')}"` : '""');
+        csvContent += `${item.srNo},${clean(item.date)},${clean(item.day)},${clean(item.specialDay)},${clean(item.pillar)},${clean(item.type)},${clean(item.visual)},${clean(item.script)},${clean(item.caption)},${clean(item.status)}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${client.name}_${client.month}_${client.year}_Calendar.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      alert(`✅ Export Successful!\n\nDownloaded: "${client.name}_${client.month}_${client.year}_Calendar.csv"\n\nYou can open this file directly in Microsoft Excel!`);
+    }
+
+    // =========================================================================
+    // CALENDAR CREATION ENGINE (1-Click Generator)
+    // =========================================================================
+    function openCreateCalendarModal() {
+      document.getElementById('modalCreateCalendar').classList.remove('hidden');
+    }
+    function closeCreateCalendarModal() {
+      document.getElementById('modalCreateCalendar').classList.add('hidden');
+    }
+    function executeCreateCalendar() {
+      const clientKey = document.getElementById('modalCalClient').value;
+      const month = document.getElementById('modalCalMonth').value;
+      const year = document.getElementById('modalCalYear').value;
+      const creatives = document.getElementById('modalCalCreatives').value;
+      const reels = document.getElementById('modalCalReels').value;
+      const brief = document.getElementById('modalCalBrief').value;
+
+      activeClientKey = clientKey;
+      document.getElementById('clientSelector').value = clientKey;
+
+      const client = clientDataStore[clientKey];
+      client.month = month;
+      client.year = parseInt(year);
+      client.targetCreatives = parseInt(creatives);
+      client.targetReels = parseInt(reels);
+      if (brief) client.pillars = brief;
+
+      // Auto-generate 5 fresh items if empty or extend
+      if (client.items.length < 5) {
+        client.items.push({
+          srNo: client.items.length + 1,
+          date: `${year}-10-06`,
+          day: "Tuesday",
+          specialDay: "New Campaign Launch",
+          pillar: "Promotions",
+          type: "REEL",
+          visual: "Product unboxing and feature highlights",
+          script: "Hook: Stop scrolling if you want to upgrade your workflow...",
+          caption: "Introducing our new October collection. #NewRelease",
+          status: "DRAFT",
+          mediaType: "reel",
+          mediaUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+        });
+      }
+
+      closeCreateCalendarModal();
+      renderActiveClient();
+      alert(`🎉 New Calendar Created for ${client.name} (${month} ${year})!\n\nDeliverable Quotas: ${creatives} Creatives, ${reels} Reels.\nDaily schedule slots have been initialized.`);
+    }
+
+    // =========================================================================
+    // ADD POST ITEM
+    // =========================================================================
+    function openAddPostModal() {
+      document.getElementById('modalAddPost').classList.remove('hidden');
+    }
+    function closeAddPostModal() {
+      document.getElementById('modalAddPost').classList.add('hidden');
+    }
+    function saveNewPostItem() {
+      const client = clientDataStore[activeClientKey];
+      const dateVal = document.getElementById('newPostDate').value;
+      const typeVal = document.getElementById('newPostType').value;
+      const specialVal = document.getElementById('newPostSpecialDay').value || "—";
+      const pillarVal = document.getElementById('newPostPillar').value || "General";
+      const visualVal = document.getElementById('newPostVisual').value || "Creative visual brief";
+      const scriptVal = document.getElementById('newPostScript').value || "Hook - Body - CTA Script";
+      const captionVal = document.getElementById('newPostCaption').value || "Official Brand Post #Brand";
+
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const d = new Date(dateVal);
+      const dayName = days[d.getDay()] || "Day";
+
+      client.items.push({
+        srNo: client.items.length + 1,
+        date: dateVal,
+        day: dayName,
+        specialDay: specialVal,
+        pillar: pillarVal,
+        type: typeVal,
+        visual: visualVal,
+        script: scriptVal,
+        caption: captionVal,
+        status: "DRAFT",
+        mediaType: typeVal === 'REEL' ? 'reel' : (typeVal === 'CAROUSEL' ? 'carousel' : 'image'),
+        mediaUrl: typeVal === 'REEL' ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' : 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'
+      });
+
+      closeAddPostModal();
+      renderActiveClient();
+      alert("✅ New post slot added successfully to the calendar!");
+    }
+
+    function deletePostItem(srNo) {
+      const client = clientDataStore[activeClientKey];
+      if (confirm(`Are you sure you want to remove item #${srNo}?`)) {
+        client.items = client.items.filter(i => i.srNo !== srNo);
+        // renumber
+        client.items.forEach((item, idx) => item.srNo = idx + 1);
+        renderActiveClient();
+      }
+    }
+
+    // =========================================================================
+    // MEDIA PLAYER MODAL
+    // =========================================================================
+    function openMediaPreview(type, url, title) {
+      const modal = document.getElementById('modalPlayer');
+      const titleEl = document.getElementById('playerModalTitle');
+      const body = document.getElementById('playerModalBody');
+      titleEl.innerText = title || "Media Preview";
+
+      if (type === 'reel') {
+        body.innerHTML = `
+          <div class="relative w-full max-w-sm rounded-xl overflow-hidden shadow-2xl bg-black border border-slate-800">
+            <video controls autoplay class="w-full aspect-[9/16] object-cover">
+              <source src="${url}" type="video/mp4">
+              Your browser does not support video playback.
+            </video>
+          </div>
+          <p class="text-xs text-slate-400 mt-3 flex items-center space-x-1">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>4K Vertical Reel streaming smoothly with zero Google Drive access errors</span>
+          </p>
+        `;
+      } else if (type === 'carousel') {
+        body.innerHTML = `
+          <div class="w-full max-w-md bg-slate-900 rounded-xl p-4 text-center text-white border border-slate-800">
+            <div class="h-64 rounded-lg bg-gradient-to-br from-indigo-900 to-purple-950 flex flex-col items-center justify-center p-6 border border-indigo-700/50">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-widest">Interactive Carousel • Slide 1 of 5</span>
+              <h4 class="text-base font-bold mt-2">"Breast cancer only happens after 50? Myth Busted."</h4>
+              <p class="text-xs text-slate-300 mt-2">Age alone should never be the reason to ignore symptoms.</p>
+            </div>
+            <div class="flex items-center justify-between mt-4 text-xs px-2">
+              <button onclick="alert('Previous slide')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">Previous</button>
+              <span class="text-slate-400">Slide 1 / 5</span>
+              <button onclick="alert('Next slide (Slide 2: Early Screening Signs)')" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-white font-medium">Next Slide</button>
+            </div>
+          </div>
+        `;
+      } else {
+        body.innerHTML = `
+          <img src="${url}" class="max-h-[380px] rounded-lg object-contain shadow-2xl">
+        `;
+      }
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+    function closePlayerModal() {
+      document.getElementById('modalPlayer').classList.add('hidden');
+      document.getElementById('playerModalBody').innerHTML = '';
+    }
+
+    // =========================================================================
+    // CLIENT APPROVAL & SUGGESTIONS
+    // =========================================================================
+    function approvePostItem(srNo) {
+      const client = clientDataStore[activeClientKey];
+      const item = client.items.find(i => i.srNo === srNo);
+      if (item) {
+        item.status = "APPROVED";
+        renderActiveClient();
+        alert(`✅ Post #${srNo} Approved!\n\nStatus is locked with digital audit stamp.`);
+      }
+    }
+
+    function approveEntireCalendar() {
+      const client = clientDataStore[activeClientKey];
+      client.items.forEach(i => i.status = "APPROVED");
+      renderActiveClient();
+      alert(`🎉 100% Calendar Approved for ${client.name}!\n\nAll ${client.items.length} items approved and locked for publishing.`);
+    }
+
+    function openSuggestionModalForItem(srNo) {
+      selectedItemForFeedback = srNo;
+      document.getElementById('modalSuggestion').classList.remove('hidden');
+    }
+    function closeSuggestionModal() {
+      document.getElementById('modalSuggestion').classList.add('hidden');
+      selectedItemForFeedback = null;
+    }
+    function submitClientFeedback() {
+      const text = document.getElementById('clientFeedbackInput').value;
+      if (!text) { alert('Please enter your feedback.'); return; }
+      
+      const client = clientDataStore[activeClientKey];
+      const item = client.items.find(i => i.srNo === selectedItemForFeedback);
+      if (item) {
+        item.status = "CHANGES REQ";
+        item.caption = `[Client Feedback: "${text}"] - ` + item.caption;
+      }
+      closeSuggestionModal();
+      renderActiveClient();
+      alert(`📩 Suggestion Submitted for Item #${selectedItemForFeedback}!\n\nRevision ticket assigned to graphic designer.`);
+    }
+
+    function submitBatchToClient() {
+      const client = clientDataStore[activeClientKey];
+      alert(`🚀 Batch Submitted to ${client.name} Client Portal!\n\nClient stakeholders have received an automated notification.`);
+    }
+  </script>
+</body>
+</html>
