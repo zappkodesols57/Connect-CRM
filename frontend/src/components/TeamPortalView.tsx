@@ -20,7 +20,8 @@ import {
   Sparkles,
   LogOut,
 } from 'lucide-react';
-import { Client, CalendarItem, Employee, AdHocTask, ItemStatus } from '../types';
+import { Client, CalendarItem, Employee, AdHocTask, ItemStatus, CalendarItemNote } from '../types';
+import { INITIAL_EMPLOYEES } from '../data/mockData';
 
 interface TeamPortalViewProps {
   currentEmployee: Employee;
@@ -31,6 +32,9 @@ interface TeamPortalViewProps {
   onCreateAdHocTask: (task: Omit<AdHocTask, 'id' | 'created_at'>) => void;
   onPreviewMedia: (type: 'image' | 'reel' | 'carousel', url?: string | null, title?: string) => void;
   onSignOut: () => void;
+  onOpenChat?: (clientName?: string) => void;
+  onOpenShoots?: () => void;
+  onOpenGrowth?: () => void;
 }
 
 export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
@@ -42,12 +46,24 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   onCreateAdHocTask,
   onPreviewMedia,
   onSignOut,
+  onOpenChat,
+  onOpenShoots,
+  onOpenGrowth,
 }) => {
-  const [activeTab, setActiveTab] = useState<'deliverables' | 'adhoc' | 'attendance'>('deliverables');
+  const isManager = Boolean(currentEmployee.is_manager || currentEmployee.designation?.toLowerCase().includes('manager'));
+  const [activeTab, setActiveTab] = useState<'deliverables' | 'adhoc' | 'calendar' | 'attendance'>('deliverables');
+  const [timeScope, setTimeScope] = useState<'TODAY' | 'ALL'>('ALL');
   const [clientFilter, setClientFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Selected client for read-only calendar view
+  const [selectedCalendarClientId, setSelectedCalendarClientId] = useState<number>(clients[0]?.id || 1);
+
+  // Note modal state for internal team queries on calendar dates
+  const [noteModalItem, setNoteModalItem] = useState<{ item: CalendarItem; clientName: string } | null>(null);
+  const [queryNoteText, setQueryNoteText] = useState('');
 
   // Upload modal state
   const [uploadModalItem, setUploadModalItem] = useState<{
@@ -65,6 +81,8 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   const [newTaskClient, setNewTaskClient] = useState<number>(clients[0]?.id || 1);
   const [newTaskPriority, setNewTaskPriority] = useState<'HIGH' | 'MEDIUM' | 'NORMAL'>('NORMAL');
   const [newTaskDue, setNewTaskDue] = useState('2026-10-15');
+  const [newTaskReferenceUrl, setNewTaskReferenceUrl] = useState('');
+  const [assignedTeammateId, setAssignedTeammateId] = useState<number>(INITIAL_EMPLOYEES[1]?.id || 1600);
 
   // Attendance state
   const [isClockedIn, setIsClockedIn] = useState(true);
@@ -169,20 +187,50 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   const handleCreateAdHocTask = (e: React.FormEvent) => {
     e.preventDefault();
     const cl = clients.find((c) => c.id === newTaskClient);
+    const assignedEmp = isManager
+      ? INITIAL_EMPLOYEES.find((emp) => emp.id === assignedTeammateId) || currentEmployee
+      : currentEmployee;
+
     onCreateAdHocTask({
       title: newTaskTitle,
       description: newTaskDesc,
       client_id: cl?.id,
       client_name: cl?.name,
-      assigned_to: currentEmployee,
-      assigned_by: `${currentEmployee.first_name} ${currentEmployee.last_name}`,
+      assigned_to: assignedEmp,
+      assigned_by: `${currentEmployee.first_name} ${currentEmployee.last_name} (${isManager ? 'Manager' : 'Team'})`,
       due_date: newTaskDue,
       priority: newTaskPriority,
       status: 'TODO',
+      reference_url: newTaskReferenceUrl || null,
     });
     setIsNewTaskModalOpen(false);
     setNewTaskTitle('');
     setNewTaskDesc('');
+    setNewTaskReferenceUrl('');
+  };
+
+  // Add internal query/note on a calendar date
+  const handleSaveQueryNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteModalItem || !queryNoteText.trim()) return;
+
+    const newNote: CalendarItemNote = {
+      id: Date.now(),
+      author: `${currentEmployee.first_name} ${currentEmployee.last_name}`,
+      role: isManager ? 'MANAGER' : 'EMPLOYEE',
+      text: queryNoteText.trim(),
+      created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    const existingNotes = noteModalItem.item.team_notes || [];
+    onUpdateCalendarItem({
+      id: noteModalItem.item.id,
+      calendar: noteModalItem.item.calendar,
+      team_notes: [...existingNotes, newNote],
+    });
+
+    setQueryNoteText('');
+    setNoteModalItem(null);
   };
 
   return (
@@ -219,8 +267,40 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
             </div>
           </div>
 
-          {/* Clock In / Out Toggle & Sign Out */}
-          <div className="flex items-center space-x-2.5">
+          {/* Action Buttons: Chat, Shoots, Growth, Clock In & Sign Out */}
+          <div className="flex items-center space-x-2 flex-wrap gap-1.5">
+            {onOpenChat && (
+              <button
+                type="button"
+                onClick={() => onOpenChat()}
+                className="px-3 py-1.5 bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 border border-indigo-700 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Team Chat</span>
+              </button>
+            )}
+
+            {onOpenShoots && (
+              <button
+                type="button"
+                onClick={onOpenShoots}
+                className="px-3 py-1.5 bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-700 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span>Shoots</span>
+              </button>
+            )}
+
+            {onOpenGrowth && (
+              <button
+                type="button"
+                onClick={onOpenGrowth}
+                className="px-3 py-1.5 bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer"
+              >
+                <span>📈 Growth</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsClockedIn(!isClockedIn)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer border ${
@@ -273,6 +353,18 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
             <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 font-mono text-amber-400">
               {myAdHocTasks.length}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`py-2.5 px-4 font-bold text-xs border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+              activeTab === 'calendar'
+                ? 'border-blue-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>📅 Read-Only Calendar & Notes</span>
           </button>
         </div>
       </header>
@@ -652,6 +744,134 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
             </div>
           </div>
         )}
+
+        {/* Read-Only Calendar View with Internal Notes / Queries */}
+        {activeTab === 'calendar' && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Agency Master Calendar (Read-Only)</h2>
+                <p className="text-xs text-slate-500">
+                  Inspect client schedules & raise internal notes/queries on specific dates for managers and admin.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-700">Client:</span>
+                <select
+                  value={selectedCalendarClientId}
+                  onChange={(e) => setSelectedCalendarClientId(Number(e.target.value))}
+                  className="border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 bg-white"
+                >
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {(() => {
+              const selectedClient = clients.find((c) => c.id === selectedCalendarClientId) || clients[0];
+              const cal = selectedClient?.calendars?.[0];
+              const calItems = cal?.items || [];
+
+              if (calItems.length === 0) {
+                return (
+                  <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 text-sm">
+                    No deliverables found for {selectedClient?.name}.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {calItems.map((it) => (
+                    <div
+                      key={it.id}
+                      className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between shadow-xs hover:border-blue-400 transition space-y-3"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-slate-900">
+                            Day {it.scheduled_date.split('-')[2]} · {it.day_of_week}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              it.format === 'REEL'
+                                ? 'bg-purple-100 text-purple-700'
+                                : it.format === 'CAROUSEL'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}
+                          >
+                            {it.format}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-xs text-slate-800">{it.content_pillar}</h4>
+                          {it.special_day && (
+                            <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                              ★ {it.special_day}
+                            </span>
+                          )}
+                          <p className="text-[11px] text-slate-500 line-clamp-2">
+                            {it.visual_brief || it.reel_bytes_script || it.caption || 'Creative brief pending.'}
+                          </p>
+                        </div>
+
+                        {it.reference_url && (
+                          <a
+                            href={it.reference_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center space-x-1 text-[10px] text-blue-600 font-bold hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>Inspiration / Benchmark URL</span>
+                          </a>
+                        )}
+
+                        {/* Team Notes / Queries Display */}
+                        {it.team_notes && it.team_notes.length > 0 && (
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1 mt-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                              Team Internal Notes ({it.team_notes.length}):
+                            </span>
+                            {it.team_notes.map((note) => (
+                              <div key={note.id} className="text-[11px] text-slate-700 border-l-2 border-indigo-400 pl-2 py-0.5">
+                                <span className="font-bold text-slate-900">{note.author}</span>{' '}
+                                <span className="text-[9px] text-slate-400">({note.role})</span>: {note.text}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Button: Add Note / Question */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-semibold">{it.status}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNoteModalItem({ item: it, clientName: selectedClient.name });
+                            setQueryNoteText('');
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center space-x-1 transition cursor-pointer"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>+ Add Query Note</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </main>
 
       {/* Upload Asset Modal */}
@@ -827,6 +1047,35 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
                 </div>
               </div>
 
+              {/* Manager Delegation to Teammate */}
+              {isManager && (
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Assign To Teammate (Manager Rights)</label>
+                  <select
+                    value={assignedTeammateId}
+                    onChange={(e) => setAssignedTeammateId(Number(e.target.value))}
+                    className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 bg-white font-medium text-slate-800"
+                  >
+                    {INITIAL_EMPLOYEES.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name} · {emp.designation}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Inspiration / Benchmark URL (Optional)</label>
+                <input
+                  type="url"
+                  value={newTaskReferenceUrl}
+                  onChange={(e) => setNewTaskReferenceUrl(e.target.value)}
+                  placeholder="https://instagram.com/reel/..."
+                  className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Due Date</label>
                 <input
@@ -860,7 +1109,59 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
                   type="submit"
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-xs transition"
                 >
-                  Create Task
+                  {isManager ? 'Assign Task to Teammate' : 'Create My Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Internal Query Note Modal */}
+      {noteModalItem && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 bg-indigo-950 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-sm">Add Internal Query / Question</h3>
+                <p className="text-xs text-indigo-200">
+                  {noteModalItem.clientName} · Day {noteModalItem.item.scheduled_date.split('-')[2]} ({noteModalItem.item.content_pillar})
+                </p>
+              </div>
+              <button onClick={() => setNoteModalItem(null)} className="text-slate-400 hover:text-white font-bold">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQueryNote} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Your Query / Question for Managers & Admin</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={queryNoteText}
+                  onChange={(e) => setQueryNoteText(e.target.value)}
+                  placeholder="e.g. Script length is over 60 seconds, should we trim? Do we have raw logo files?"
+                  className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Visible to Agency Director, Social Media Managers, and Team members in the calendar.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setNoteModalItem(null)}
+                  className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition"
+                >
+                  Post Internal Query
                 </button>
               </div>
             </form>

@@ -12,6 +12,14 @@ export type CalendarStatus = 'PLANNING' | 'SHARED' | 'APPROVED' | 'LOCKED';
 export type PostCategory = 'REGULAR' | 'EXTRA';
 export type PriorityLevel = 'HIGH' | 'MEDIUM' | 'NORMAL';
 
+export interface CalendarItemNote {
+  id: number;
+  author: string;
+  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  text: string;
+  created_at: string;
+}
+
 export interface CalendarItem {
   id: number;
   calendar: number;
@@ -32,7 +40,9 @@ export interface CalendarItem {
   media_type: 'image' | 'reel' | 'carousel';
   media_url?: string | null;
   uploaded_asset_url?: string | null;
+  reference_url?: string | null;
   internal_notes?: string | null;
+  team_notes?: CalendarItemNote[];
   suggestion?: string | null;
   assigned_to?: Employee | null;
   brand?: string | null;
@@ -48,6 +58,7 @@ export interface Employee {
   mobile_number: string;
   designation: string;
   avatar_color?: string;
+  is_manager?: boolean;
 }
 
 export interface MonthlyCalendar {
@@ -102,5 +113,49 @@ export interface AdHocTask {
   due_date: string;
   priority: PriorityLevel;
   status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  reference_url?: string | null;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  sender_id?: number;
+  sender_name: string;
+  sender_role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  avatar_color?: string;
+  client_id?: number;
+  client_name?: string;
+  task_id?: number;
+  item_id?: number;
+  message: string;
+  created_at: string;
+}
+
+export interface SocialMediaTracker {
+  id: number;
+  client_id: number;
+  client_name: string;
+  platform: 'INSTAGRAM' | 'FACEBOOK' | 'LINKEDIN' | 'YOUTUBE';
+  handle: string;
+  month: string;
+  year: number;
+  starting_followers: number;
+  current_followers: number;
+  target_followers?: number;
+  assigned_to: Employee;
+  last_updated: string;
+}
+
+export interface ShootSchedule {
+  id: number;
+  client_id: number;
+  client_name: string;
+  shoot_date: string;
+  shoot_time: string;
+  location: string;
+  brief: string;
+  assigned_crew: Employee[];
+  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
+  reminder_note?: string;
   created_at: string;
 }

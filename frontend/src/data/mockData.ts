@@ -1,7 +1,7 @@
-import { Client, Employee, AdHocTask } from '../types';
+import { Client, Employee, AdHocTask, ChatMessage, SocialMediaTracker, ShootSchedule } from '../types';
 
 export const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 1634, user_id: "922614612", first_name: "Shreya", last_name: "Thakur", email_id: "shreya.thakur@zappcode.in", team_group: "Social Media Team", mobile_number: "922614612", designation: "Digital Marketing Manager", avatar_color: "bg-indigo-600" },
+  { id: 1634, user_id: "922614612", first_name: "Shreya", last_name: "Thakur", email_id: "shreya.thakur@zappcode.in", team_group: "Social Media Team", mobile_number: "922614612", designation: "Digital Marketing Manager", avatar_color: "bg-indigo-600", is_manager: true },
   { id: 1600, user_id: "9834998359", first_name: "Gaurav", last_name: "Bhingare", email_id: "gaurav.bhingare@zappcode.in", team_group: "Social Media Team", mobile_number: "9834998359", designation: "Jr. Video Editor", avatar_color: "bg-purple-600" },
   { id: 1597, user_id: "7447682328", first_name: "Achal", last_name: "Ragit", email_id: "aachal.ragit@zappcode.in", team_group: "Social Media Team", mobile_number: "7447682328", designation: "Graphic Designer", avatar_color: "bg-pink-600" },
   { id: 1617, user_id: "9322621335", first_name: "Rohan", last_name: "Katre", email_id: "rohankatre90@gmail.com", team_group: "Social Media Team", mobile_number: "9322621335", designation: "Graphic Designer", avatar_color: "bg-blue-600" },
@@ -10,6 +10,128 @@ export const INITIAL_EMPLOYEES: Employee[] = [
   { id: 1629, user_id: "8805841001", first_name: "Diksha", last_name: "Bisen", email_id: "bisendiksha97@gmail.com", team_group: "Social Media Team", mobile_number: "8805841001", designation: "Intern Digital Marketing", avatar_color: "bg-emerald-600" },
   { id: 1623, user_id: "9325053129", first_name: "Prerna", last_name: "Yewle", email_id: "prernayewle091@gmail.com", team_group: "Social Media Team", mobile_number: "9325053129", designation: "Intern eCommerce Management", avatar_color: "bg-cyan-600" },
 ];
+
+export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
+  {
+    id: 1,
+    sender_id: 1634,
+    sender_name: "Shreya Thakur (Manager)",
+    sender_role: "MANAGER",
+    avatar_color: "bg-indigo-600",
+    client_name: "Nelson",
+    client_id: 22,
+    message: "Team, please prioritize the Pink October reels for Nelson Luxe. Dr. Ananya's byte is locked.",
+    created_at: "2026-10-13 10:15 AM",
+  },
+  {
+    id: 2,
+    sender_id: 1600,
+    sender_name: "Gaurav Bhingare",
+    sender_role: "EMPLOYEE",
+    avatar_color: "bg-purple-600",
+    client_name: "Nelson",
+    client_id: 22,
+    message: "Rough cut for Nelson Reel #1 is ready! Added the sound wave audio template.",
+    created_at: "2026-10-13 11:20 AM",
+  },
+  {
+    id: 3,
+    sender_id: 999,
+    sender_name: "Tushar (Agency Director)",
+    sender_role: "ADMIN",
+    avatar_color: "bg-blue-600",
+    client_name: "Nelson",
+    client_id: 22,
+    message: "Looks sharp! Ensure hospital emergency helpline number is visible in the outro card.",
+    created_at: "2026-10-13 11:45 AM",
+  },
+  {
+    id: 4,
+    sender_id: 1597,
+    sender_name: "Achal Ragit",
+    sender_role: "EMPLOYEE",
+    avatar_color: "bg-pink-600",
+    client_name: "Central Brain & Spine Hospital",
+    client_id: 21,
+    message: "Diwali carousel drafts uploaded for Central Spine. Please check slide 4 contrast.",
+    created_at: "2026-10-13 01:10 PM",
+  },
+];
+
+export const INITIAL_SOCIAL_TRACKERS: SocialMediaTracker[] = [
+  {
+    id: 1,
+    client_id: 22,
+    client_name: "Nelson",
+    platform: "INSTAGRAM",
+    handle: "@nelsonhospitals",
+    month: "October",
+    year: 2026,
+    starting_followers: 10450,
+    current_followers: 14820,
+    target_followers: 16000,
+    assigned_to: INITIAL_EMPLOYEES[4], // Prachi Pantawane
+    last_updated: "2026-10-13",
+  },
+  {
+    id: 2,
+    client_id: 21,
+    client_name: "Central Brain & Spine Hospital",
+    platform: "INSTAGRAM",
+    handle: "@cbshospitalnagpur",
+    month: "October",
+    year: 2026,
+    starting_followers: 6200,
+    current_followers: 8940,
+    target_followers: 10000,
+    assigned_to: INITIAL_EMPLOYEES[5], // Achal Wankhede
+    last_updated: "2026-10-13",
+  },
+  {
+    id: 3,
+    client_id: 24,
+    client_name: "Kohinoor TEZ",
+    platform: "INSTAGRAM",
+    handle: "@kohinoortez_notes",
+    month: "October",
+    year: 2026,
+    starting_followers: 18500,
+    current_followers: 24100,
+    target_followers: 25000,
+    assigned_to: INITIAL_EMPLOYEES[0], // Shreya Thakur
+    last_updated: "2026-10-13",
+  },
+];
+
+export const INITIAL_SHOOT_SCHEDULES: ShootSchedule[] = [
+  {
+    id: 1,
+    client_id: 22,
+    client_name: "Nelson",
+    shoot_date: "2026-10-14",
+    shoot_time: "02:00 PM - 05:30 PM",
+    location: "Nelson Luxe Hospital OPD & Pediatric Wing",
+    brief: "Record 4 doctor reel bytes on Pink October Awareness + Pediatric ICU walkthrough.",
+    assigned_crew: [INITIAL_EMPLOYEES[0], INITIAL_EMPLOYEES[1]], // Shreya + Gaurav
+    status: "UPCOMING",
+    reminder_note: "Carry dual lapel mic and LED ring light. Meet Hospital PR Manager at Gate 2.",
+    created_at: "2026-10-12",
+  },
+  {
+    id: 2,
+    client_id: 21,
+    client_name: "Central Brain & Spine Hospital",
+    shoot_date: "2026-10-16",
+    shoot_time: "11:30 AM - 03:00 PM",
+    location: "Neuro ICU & Consultation Suite 4",
+    brief: "Interview with Head Neurosurgeon on stroke symptoms and emergency Golden Hour.",
+    assigned_crew: [INITIAL_EMPLOYEES[1], INITIAL_EMPLOYEES[4]], // Gaurav + Prachi
+    status: "UPCOMING",
+    reminder_note: "Confirm with Dr. Verma's PA by 10 AM.",
+    created_at: "2026-10-13",
+  },
+];
+
 
 export const INITIAL_ADHOC_TASKS: AdHocTask[] = [
   {

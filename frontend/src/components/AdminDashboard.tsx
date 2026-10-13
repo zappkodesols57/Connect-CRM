@@ -105,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return (cal?.items ?? []).map((i) => ({ ...i, clientName: c.name, clientColor: c.primary_color }));
   });
 
-  const funnelDraft = allDetailedItems.filter(i => i.status === 'DRAFT' || i.status === 'PLANNING').length;
+  const funnelDraft = allDetailedItems.filter(i => i.status === 'DRAFT' || i.status === 'IN_PROGRESS').length;
   const funnelInternal = allDetailedItems.filter(i => i.status === 'SUBMITTED' || i.status === 'INTERNAL_APPROVED').length;
   const funnelClientReview = allDetailedItems.filter(i => i.status === 'READY_FOR_CLIENT').length;
   const funnelRevisions = allDetailedItems.filter(i => i.status === 'CHANGES_REQ').length;

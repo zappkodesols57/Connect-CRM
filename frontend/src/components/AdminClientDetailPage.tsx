@@ -47,6 +47,8 @@ interface AdminClientDetailPageProps {
     prefill: boolean
   ) => void | number;
   onPreviewMedia: (type: 'image' | 'reel' | 'carousel', url?: string | null, title?: string) => void;
+  onOpenExcelImport?: (clientId: number) => void;
+  onOpenChat?: (clientName: string) => void;
 }
 
 export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
@@ -56,8 +58,13 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
   onDeleteCalendarItem,
   onCreateCalendar,
   onPreviewMedia,
+  onOpenExcelImport,
+  onOpenChat,
 }) => {
   const [selectedCalendarId, setSelectedCalendarId] = useState<number>(client.calendars?.[0]?.id || 0);
+  const [categoryTab, setCategoryTab] = useState<'ALL' | 'REGULAR' | 'EXTRA'>('ALL');
+  const [referenceUrl, setReferenceUrl] = useState<string>('');
+  const [uploadAssetFile, setUploadAssetFile] = useState<string>('');
 
   // Active Calendar determination
   const activeCalendar: MonthlyCalendar | undefined =
@@ -115,7 +122,12 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
 
   const getDayItems = (dayNum: number) => {
     const dateStr = `${currentYear}-${monthNumStr}-${dayNum < 10 ? '0' : ''}${dayNum}`;
-    const dayItems = items.filter((i) => i.scheduled_date === dateStr);
+    let dayItems = items.filter((i) => i.scheduled_date === dateStr);
+    if (categoryTab === 'REGULAR') {
+      dayItems = dayItems.filter((i) => i.post_category !== 'EXTRA');
+    } else if (categoryTab === 'EXTRA') {
+      dayItems = dayItems.filter((i) => i.post_category === 'EXTRA');
+    }
     if (hasBrands && activeBrandFilter !== 'ALL') {
       return dayItems.filter((i) => i.brand === activeBrandFilter);
     }
@@ -136,6 +148,8 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
       setScheduledTime(item.scheduled_time || '11:00 AM');
       setPostCategory(item.post_category || 'REGULAR');
       setPriority(item.priority || 'NORMAL');
+      setReferenceUrl(item.reference_url || '');
+      setUploadAssetFile(item.uploaded_asset_url || '');
       const day = parseInt(item.scheduled_date.split('-')[2]);
       setRescheduleDay(day || activeDay);
     } else {
@@ -150,6 +164,8 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
       setScheduledTime('11:00 AM');
       setPostCategory('REGULAR');
       setPriority('NORMAL');
+      setReferenceUrl('');
+      setUploadAssetFile('');
       setRescheduleDay(activeDay);
     }
   };
@@ -223,7 +239,8 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
         (format === 'REEL'
           ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
           : 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'),
-      uploaded_asset_url: editingItem?.uploaded_asset_url || null,
+      uploaded_asset_url: uploadAssetFile || editingItem?.uploaded_asset_url || null,
+      reference_url: referenceUrl || null,
       assigned_to: assignedTo,
       brand: hasBrands ? modalBrand : undefined,
     };
@@ -367,22 +384,102 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
           </div>
         </div>
 
-        {onCreateCalendar && (
-          <button
-            type="button"
-            onClick={() => {
-              const nextMonthIdx = (monthIndex + 1) % 12;
-              const nextYear = nextMonthIdx === 0 ? currentYear + 1 : currentYear;
-              setNewMonthName(monthNames[nextMonthIdx]);
-              setNewMonthYear(nextYear);
-              setIsCreateMonthModalOpen(true);
-            }}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-200 transition cursor-pointer shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Create Next Month Calendar</span>
-          </button>
-        )}
+        <div className="flex items-center space-x-2 shrink-0">
+          {onOpenChat && (
+            <button
+              type="button"
+              onClick={() => onOpenChat(client.name)}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold rounded-xl transition cursor-pointer"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Team Chat</span>
+            </button>
+          )}
+
+          {onOpenExcelImport && (
+            <button
+              type="button"
+              onClick={() => onOpenExcelImport(client.id)}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-xs font-bold rounded-xl transition cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-teal-600" />
+              <span>Import Excel</span>
+            </button>
+          )}
+
+          {onCreateCalendar && (
+            <button
+              type="button"
+              onClick={() => {
+                const nextMonthIdx = (monthIndex + 1) % 12;
+                const nextYear = nextMonthIdx === 0 ? currentYear + 1 : currentYear;
+                setNewMonthName(monthNames[nextMonthIdx]);
+                setNewMonthYear(nextYear);
+                setIsCreateMonthModalOpen(true);
+              }}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm shadow-emerald-200 transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Create Next Month Calendar</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Regular vs Extra Deliverables Quota Filter Tabs */}
+      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider pl-1">Deliverables View:</span>
+          <div className="flex items-center space-x-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setCategoryTab('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                categoryTab === 'ALL'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>All Deliverables</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700 font-mono">
+                {items.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCategoryTab('REGULAR')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                categoryTab === 'REGULAR'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>📋 Regular Contract Quota</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${categoryTab === 'REGULAR' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                {items.filter((i) => i.post_category !== 'EXTRA').length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCategoryTab('EXTRA')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                categoryTab === 'EXTRA'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>⚡ Extra / On-Demand</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${categoryTab === 'EXTRA' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                {items.filter((i) => i.post_category === 'EXTRA').length}
+              </span>
+            </button>
+          </div>
+        </div>
+        <span className="text-xs text-slate-400 italic">
+          Separate calendar view for contract quota vs extra client requests
+        </span>
       </div>
 
       {/* Dual Brand Filter Tabs (for Nelson Luxe vs Nelson Hospital, etc.) */}
@@ -1108,6 +1205,32 @@ export const AdminClientDetailPage: React.FC<AdminClientDetailPageProps> = ({
                   }
                   className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
+              </div>
+
+              {/* Referral / Inspiration URL & Creative Asset Upload */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Inspiration / Referral Link</label>
+                  <input
+                    type="url"
+                    value={referenceUrl}
+                    onChange={(e) => setReferenceUrl(e.target.value)}
+                    placeholder="https://instagram.com/reel/... (Benchmark)"
+                    className="w-full border border-slate-300 rounded-xl p-2 bg-white text-xs focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-[10px] text-slate-400 block mt-1">Reference link for creative or video editor</span>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Media Asset (Upload or Direct URL)</label>
+                  <input
+                    type="text"
+                    value={uploadAssetFile}
+                    onChange={(e) => setUploadAssetFile(e.target.value)}
+                    placeholder="Paste cloud link or upload URL..."
+                    className="w-full border border-slate-300 rounded-xl p-2 bg-white text-xs focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-[10px] text-slate-400 block mt-1">Direct video/creative media for client preview</span>
+                </div>
               </div>
 
               {/* Assign To */}

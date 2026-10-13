@@ -18,10 +18,31 @@ import { ClientFeedbackView } from './components/ClientFeedbackView';
 import { CreateClientModal } from './components/CreateClientModal';
 import { MediaModal } from './components/MediaModal';
 import { TeamPortalView } from './components/TeamPortalView';
+import { ExcelImportModal } from './components/ExcelImportModal';
+import { InternalChatDrawer } from './components/InternalChatDrawer';
+import { SocialGrowthModal } from './components/SocialGrowthModal';
+import { ShootScheduleModal } from './components/ShootScheduleModal';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
-import { INITIAL_CLIENTS, INITIAL_EMPLOYEES, INITIAL_ADHOC_TASKS } from './data/mockData';
-import { Client, CalendarItem, Employee, AdHocTask, MonthlyCalendar, MediaFormat } from './types';
+import {
+  INITIAL_CLIENTS,
+  INITIAL_EMPLOYEES,
+  INITIAL_ADHOC_TASKS,
+  INITIAL_CHAT_MESSAGES,
+  INITIAL_SOCIAL_TRACKERS,
+  INITIAL_SHOOT_SCHEDULES,
+} from './data/mockData';
+import {
+  Client,
+  CalendarItem,
+  Employee,
+  AdHocTask,
+  MonthlyCalendar,
+  MediaFormat,
+  ChatMessage,
+  SocialMediaTracker,
+  ShootSchedule,
+} from './types';
 
 interface AuthSession {
   role: 'admin' | 'client' | 'team';
@@ -62,6 +83,23 @@ const MainApp: React.FC = () => {
 
   // Operational & Ad-hoc Tasks State
   const [adHocTasks, setAdHocTasks] = useState<AdHocTask[]>(INITIAL_ADHOC_TASKS);
+
+  // Internal Agency Chat State
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInitialClient, setChatInitialClient] = useState<string>('ALL');
+
+  // Client Follower Growth State
+  const [socialTrackers, setSocialTrackers] = useState<SocialMediaTracker[]>(INITIAL_SOCIAL_TRACKERS);
+  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+
+  // Production Shoots State
+  const [shootSchedules, setShootSchedules] = useState<ShootSchedule[]>(INITIAL_SHOOT_SCHEDULES);
+  const [isShootModalOpen, setIsShootModalOpen] = useState(false);
+
+  // Excel Calendar Import State
+  const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
+  const [excelImportClientId, setExcelImportClientId] = useState<number | null>(null);
 
   // Login handler
   const handleLogin = (loginData: {
@@ -109,56 +147,56 @@ const MainApp: React.FC = () => {
     else navigate('/');
   };
 
-  // Handler when Admin or Team updates or creates a post
+  // Handler when Admin or Team updates or creates a post across any monthly calendar
   const handleUpdateCalendarItem = (updatedItem: Partial<CalendarItem>) => {
     setClients((prevClients) =>
       prevClients.map((c) => {
-        const cal = c.calendars && c.calendars.length > 0 ? { ...c.calendars[0] } : null;
-        if (!cal) return c;
+        if (!c.calendars || c.calendars.length === 0) return c;
 
-        const existingItems = cal.items ? [...cal.items] : [];
-        const index = existingItems.findIndex((i) => i.id === updatedItem.id);
+        let itemFound = false;
+        const updatedCalendars = c.calendars.map((cal) => {
+          const existingItems = cal.items ? [...cal.items] : [];
+          const index = existingItems.findIndex((i) => i.id === updatedItem.id);
 
-        if (index >= 0) {
-          const newItems = existingItems.map((item, idx) =>
-            idx === index ? ({ ...item, ...updatedItem } as CalendarItem) : item
-          );
-          const updatedCalendar = {
-            ...cal,
-            items: newItems,
-            total_items: newItems.length,
-          };
-          const updatedClient = {
-            ...c,
-            calendars: [updatedCalendar],
-          };
-          if (adminSelectedClient && adminSelectedClient.id === c.id) {
-            setAdminSelectedClient(updatedClient);
+          if (index >= 0) {
+            itemFound = true;
+            const newItems = existingItems.map((item, idx) =>
+              idx === index ? ({ ...item, ...updatedItem } as CalendarItem) : item
+            );
+            return {
+              ...cal,
+              items: newItems,
+              total_items: newItems.length,
+            };
+          } else if (updatedItem.calendar === cal.id) {
+            itemFound = true;
+            const newItems = [...existingItems, updatedItem as CalendarItem];
+            return {
+              ...cal,
+              items: newItems,
+              total_items: newItems.length,
+            };
           }
-          if (auth?.role === 'client' && auth.client?.id === c.id) {
-            setAuth({ ...auth, client: updatedClient });
-          }
-          return updatedClient;
-        } else if (adminSelectedClient && adminSelectedClient.id === c.id) {
-          // New deliverable slot (e.g. 2nd post/reel on same day)
-          const newItems = [...existingItems, updatedItem as CalendarItem];
-          const updatedCalendar = {
-            ...cal,
-            items: newItems,
-            total_items: newItems.length,
-          };
-          const updatedClient = {
-            ...c,
-            calendars: [updatedCalendar],
-          };
-          setAdminSelectedClient(updatedClient);
-          if (auth?.role === 'client' && auth.client?.id === c.id) {
-            setAuth({ ...auth, client: updatedClient });
-          }
-          return updatedClient;
+          return cal;
+        });
+
+        if (!itemFound && adminSelectedClient && adminSelectedClient.id === c.id) {
+          const firstCal = updatedCalendars[0];
+          const newItems = [...(firstCal.items || []), updatedItem as CalendarItem];
+          updatedCalendars[0] = { ...firstCal, items: newItems, total_items: newItems.length };
         }
 
-        return c;
+        const updatedClient = {
+          ...c,
+          calendars: updatedCalendars,
+        };
+        if (adminSelectedClient && adminSelectedClient.id === c.id) {
+          setAdminSelectedClient(updatedClient);
+        }
+        if (auth?.role === 'client' && auth.client?.id === c.id) {
+          setAuth({ ...auth, client: updatedClient });
+        }
+        return updatedClient;
       })
     );
   };
@@ -171,7 +209,7 @@ const MainApp: React.FC = () => {
     const created: AdHocTask = {
       ...newTask,
       id: Date.now(),
-      created_at: '2026-10-01',
+      created_at: new Date().toISOString().split('T')[0],
     };
     setAdHocTasks((prev) => [created, ...prev]);
   };
@@ -184,19 +222,18 @@ const MainApp: React.FC = () => {
       prevClients.map((c) => {
         if (c.id !== adminSelectedClient.id) return c;
 
-        const cal = c.calendars && c.calendars.length > 0 ? { ...c.calendars[0] } : null;
-        if (!cal) return c;
-
-        const newItems = (cal.items || []).filter((i) => i.id !== itemId);
-        const updatedCalendar = {
-          ...cal,
-          items: newItems,
-          total_items: newItems.length,
-        };
+        const updatedCalendars = (c.calendars || []).map((cal) => {
+          const newItems = (cal.items || []).filter((i) => i.id !== itemId);
+          return {
+            ...cal,
+            items: newItems,
+            total_items: newItems.length,
+          };
+        });
 
         const updatedClient = {
           ...c,
-          calendars: [updatedCalendar],
+          calendars: updatedCalendars,
         };
 
         setAdminSelectedClient(updatedClient);
@@ -219,16 +256,20 @@ const MainApp: React.FC = () => {
       prevClients.map((c) => {
         if (c.id !== clientId) return c;
 
-        const cal = c.calendars && c.calendars.length > 0 ? { ...c.calendars[0] } : null;
-        if (!cal) return c;
-
-        const newItems = (cal.items || []).map((i) =>
-          i.id === itemId ? { ...i, status: 'APPROVED' as const } : i
-        );
+        const updatedCalendars = (c.calendars || []).map((cal) => {
+          const newItems = (cal.items || []).map((i) =>
+            i.id === itemId ? { ...i, status: 'APPROVED' as const } : i
+          );
+          return {
+            ...cal,
+            items: newItems,
+            approved_items: newItems.filter((i) => i.status === 'APPROVED').length,
+          };
+        });
 
         const updatedClient = {
           ...c,
-          calendars: [{ ...cal, items: newItems }],
+          calendars: updatedCalendars,
         };
 
         setAuth((prev) => (prev ? { ...prev, client: updatedClient } : null));
@@ -251,18 +292,21 @@ const MainApp: React.FC = () => {
       prevClients.map((c) => {
         if (c.id !== clientId) return c;
 
-        const cal = c.calendars && c.calendars.length > 0 ? { ...c.calendars[0] } : null;
-        if (!cal) return c;
-
-        const newItems = (cal.items || []).map((i) =>
-          i.id === itemId
-            ? { ...i, status: 'CHANGES_REQ' as const, suggestion: feedback }
-            : i
-        );
+        const updatedCalendars = (c.calendars || []).map((cal) => {
+          const newItems = (cal.items || []).map((i) =>
+            i.id === itemId
+              ? { ...i, status: 'CHANGES_REQ' as const, suggestion: feedback }
+              : i
+          );
+          return {
+            ...cal,
+            items: newItems,
+          };
+        });
 
         const updatedClient = {
           ...c,
-          calendars: [{ ...cal, items: newItems }],
+          calendars: updatedCalendars,
         };
 
         setAuth((prev) => (prev ? { ...prev, client: updatedClient } : null));
@@ -274,6 +318,116 @@ const MainApp: React.FC = () => {
         return updatedClient;
       })
     );
+  };
+
+  // Handler when user imports an Excel calendar (.xlsx)
+  const handleImportExcelCalendar = (data: {
+    clientId: number;
+    month: string;
+    year: number;
+    items: CalendarItem[];
+  }) => {
+    const newCalId = Date.now();
+    const stampedItems = data.items.map((it, idx) => ({
+      ...it,
+      id: newCalId + idx + 1,
+      calendar: newCalId,
+    }));
+
+    const newCalendar: MonthlyCalendar = {
+      id: newCalId,
+      client: data.clientId,
+      month: data.month,
+      year: data.year,
+      title: `${data.month} ${data.year} Content Schedule`,
+      status: 'PLANNING',
+      target_creatives: stampedItems.filter((i) => i.format === 'IMAGE' || i.format === 'CAROUSEL').length,
+      target_reels: stampedItems.filter((i) => i.format === 'REEL').length,
+      target_stories: stampedItems.filter((i) => i.format === 'STORY').length || 30,
+      total_items: stampedItems.length,
+      approved_items: stampedItems.filter((i) => i.status === 'APPROVED').length,
+      items: stampedItems,
+    };
+
+    setClients((prev) =>
+      prev.map((c) => {
+        if (c.id !== data.clientId) return c;
+        const existingIndex = (c.calendars || []).findIndex(
+          (cal) => cal.month.toLowerCase() === data.month.toLowerCase() && cal.year === data.year
+        );
+        let updatedCalendars: MonthlyCalendar[];
+        if (existingIndex >= 0) {
+          updatedCalendars = (c.calendars || []).map((cal, idx) => (idx === existingIndex ? newCalendar : cal));
+        } else {
+          updatedCalendars = [...(c.calendars || []), newCalendar];
+        }
+        const updatedC = { ...c, calendars: updatedCalendars };
+        if (adminSelectedClient?.id === c.id) setAdminSelectedClient(updatedC);
+        return updatedC;
+      })
+    );
+    alert(`🎉 Successfully imported ${stampedItems.length} deliverables into ${data.month} ${data.year} calendar!`);
+  };
+
+  // Handler for internal team chat messages
+  const handleSendMessage = (msg: Omit<ChatMessage, 'id' | 'created_at'>) => {
+    const newMsg: ChatMessage = {
+      ...msg,
+      id: Date.now(),
+      created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setChatMessages((prev) => [...prev, newMsg]);
+  };
+
+  // Handlers for client social media follower growth tracking
+  const handleUpdateTracker = (updated: SocialMediaTracker) => {
+    setSocialTrackers((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+  };
+
+  const handleAddTracker = (newTracker: Omit<SocialMediaTracker, 'id' | 'last_updated'>) => {
+    const created: SocialMediaTracker = {
+      ...newTracker,
+      id: Date.now(),
+      last_updated: 'Just now',
+    };
+    setSocialTrackers((prev) => [created, ...prev]);
+  };
+
+  // Handler for on-site shoot schedules and crew assignment
+  const handleAddShoot = (shoot: Omit<ShootSchedule, 'id' | 'created_at'>) => {
+    const created: ShootSchedule = {
+      ...shoot,
+      id: Date.now(),
+      created_at: new Date().toISOString().split('T')[0],
+    };
+    setShootSchedules((prev) => [created, ...prev]);
+  };
+
+  // Helper to determine active user identity and role for internal chat drawer
+  const getCurrentChatUser = () => {
+    if (auth?.role === 'admin') {
+      return {
+        id: 9999,
+        name: auth.name || 'Tushar (Agency Director)',
+        role: 'ADMIN' as const,
+        avatar_color: 'bg-emerald-600',
+      };
+    }
+    if (auth?.role === 'team' && auth.employee) {
+      const isMgr = Boolean(auth.employee.is_manager || auth.employee.designation?.toLowerCase().includes('manager'));
+      return {
+        id: auth.employee.id,
+        name: `${auth.employee.first_name} ${auth.employee.last_name}`,
+        role: isMgr ? ('MANAGER' as const) : ('EMPLOYEE' as const),
+        avatar_color: 'bg-indigo-600',
+      };
+    }
+    return {
+      id: 9999,
+      name: 'Tushar (Admin)',
+      role: 'ADMIN' as const,
+      avatar_color: 'bg-emerald-600',
+    };
   };
 
   // Handler to add a new client
@@ -583,6 +737,12 @@ const MainApp: React.FC = () => {
                   onExportExcel={handleExportExcel}
                   onSignOut={handleSignOut}
                   teamCount={INITIAL_EMPLOYEES.length}
+                  onOpenChat={() => {
+                    setChatInitialClient('ALL');
+                    setIsChatOpen(true);
+                  }}
+                  onOpenShoots={() => setIsShootModalOpen(true)}
+                  onOpenGrowth={() => setIsSocialModalOpen(true)}
                 />
 
                 <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-slate-50">
@@ -614,6 +774,14 @@ const MainApp: React.FC = () => {
                           onPreviewMedia={(type, url, title) =>
                             setMediaPreview({ isOpen: true, type, url, title: title || 'Media Preview' })
                           }
+                          onOpenExcelImport={(clientId) => {
+                            setExcelImportClientId(clientId);
+                            setIsExcelImportOpen(true);
+                          }}
+                          onOpenChat={(clientName) => {
+                            setChatInitialClient(clientName);
+                            setIsChatOpen(true);
+                          }}
                         />
                       )}
                     </>
@@ -673,6 +841,12 @@ const MainApp: React.FC = () => {
                   setMediaPreview({ isOpen: true, type, url, title: title || 'Media Preview' })
                 }
                 onSignOut={handleSignOut}
+                onOpenChat={(clientName) => {
+                  setChatInitialClient(clientName || 'ALL');
+                  setIsChatOpen(true);
+                }}
+                onOpenShoots={() => setIsShootModalOpen(true)}
+                onOpenGrowth={() => setIsSocialModalOpen(true)}
               />
             ) : (
               <Navigate to="/team/login" replace />
@@ -747,6 +921,47 @@ const MainApp: React.FC = () => {
         mediaType={mediaPreview.type}
         mediaUrl={mediaPreview.url}
         title={mediaPreview.title}
+      />
+
+      <InternalChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentUser={getCurrentChatUser()}
+        clients={clients}
+        chatMessages={chatMessages}
+        onSendMessage={handleSendMessage}
+        initialClientFilter={chatInitialClient}
+      />
+
+      <SocialGrowthModal
+        isOpen={isSocialModalOpen}
+        onClose={() => setIsSocialModalOpen(false)}
+        trackers={socialTrackers}
+        clients={clients}
+        onUpdateTracker={handleUpdateTracker}
+        onAddTracker={handleAddTracker}
+        canEdit={auth?.role === 'admin' || Boolean(auth?.employee?.is_manager)}
+      />
+
+      <ShootScheduleModal
+        isOpen={isShootModalOpen}
+        onClose={() => setIsShootModalOpen(false)}
+        shoots={shootSchedules}
+        clients={clients}
+        onAddShoot={handleAddShoot}
+        canSchedule={auth?.role === 'admin' || Boolean(auth?.employee?.is_manager)}
+      />
+
+      <ExcelImportModal
+        isOpen={isExcelImportOpen}
+        onClose={() => setIsExcelImportOpen(false)}
+        activeClient={
+          excelImportClientId
+            ? clients.find((c) => c.id === excelImportClientId)
+            : adminSelectedClient
+        }
+        clients={clients}
+        onImportCalendar={handleImportExcelCalendar}
       />
     </div>
   );

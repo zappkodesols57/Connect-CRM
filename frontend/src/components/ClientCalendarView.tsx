@@ -53,10 +53,23 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
-  // Client visibility gatekeeper: Client only sees deliverables ready for client or approved
-  const clientVisibleItems = items.filter(
-    (i) => i.status === 'READY_FOR_CLIENT' || i.status === 'CHANGES_REQ' || i.status === 'APPROVED' || i.status === 'PUBLISHED'
-  );
+  // Check if calendar is in Planning phase or has topics planned without uploaded media
+  const isPlanningPhase =
+    calendar?.status === 'PLANNING' ||
+    (items.length > 0 && items.filter((i) => i.status === 'READY_FOR_CLIENT' || i.status === 'APPROVED').length === 0);
+
+  // Client visibility gatekeeper:
+  // If calendar is in planning phase, allow client to see planned topics and script hooks for early sign-off!
+  const clientVisibleItems = isPlanningPhase
+    ? items
+    : items.filter(
+        (i) =>
+          i.status === 'READY_FOR_CLIENT' ||
+          i.status === 'CHANGES_REQ' ||
+          i.status === 'APPROVED' ||
+          i.status === 'PUBLISHED' ||
+          i.status === 'DRAFT'
+      );
 
   const getDayItems = (dayNum: number) => {
     const dateStr = `${currentYear}-${monthNumStr}-${dayNum < 10 ? '0' : ''}${dayNum}`;
@@ -129,6 +142,26 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Early Planning Phase Notification */}
+      {isPlanningPhase && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-2xl flex items-center justify-between text-xs shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-100 rounded-xl text-blue-700">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Next Month Content & Topic Planning Phase</h4>
+              <p className="text-slate-600 text-xs">
+                Review scheduled topics, visual briefs, and script hooks before creative production starts. Tap any day to approve or suggest topic tweaks!
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-blue-600 text-white font-bold text-[11px] shrink-0">
+            Early Feedback Open
+          </span>
+        </div>
+      )}
 
       {/* Month Switcher Bar for Client */}
       {client.calendars && client.calendars.length > 1 && (
@@ -354,34 +387,60 @@ export const ClientCalendarView: React.FC<ClientCalendarViewProps> = ({
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6 text-xs">
-              {/* Media Preview Player (Working Video Reel or Graphic) */}
-              <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex justify-center items-center">
-                {selectedItem.media_type === 'reel' ? (
-                  <div className="w-full max-w-xs py-4 flex flex-col items-center">
-                    <span className="text-[10px] text-slate-400 mb-2 font-mono flex items-center space-x-1">
-                      <Video className="w-3.5 h-3.5 text-purple-400" />
-                      <span>9:16 Instagram Reel Preview</span>
-                    </span>
-                    <video
-                      controls
-                      autoPlay
-                      loop
-                      playsInline
-                      className="w-64 h-96 object-cover rounded-xl shadow-2xl border border-slate-800"
-                      src={selectedItem.media_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
-                    />
+            <div className="p-6 overflow-y-auto space-y-5">
+              {/* Media Preview Player or Planning Brief Card */}
+              {isPlanningPhase || selectedItem.status === 'DRAFT' || (!selectedItem.uploaded_asset_url && !selectedItem.media_url) ? (
+                <div className="rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-indigo-950 text-white border border-slate-800 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center">
+                    <Sparkles className="w-6 h-6" />
                   </div>
-                ) : (
-                  <div className="w-full max-h-72 overflow-hidden flex items-center justify-center">
-                    <img
-                      src={selectedItem.media_url || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'}
-                      alt={selectedItem.content_pillar}
-                      className="max-h-72 w-full object-cover"
-                    />
+                  <div>
+                    <h4 className="font-bold text-sm">Creative Asset in Production Planning</h4>
+                    <p className="text-xs text-slate-300 max-w-md mx-auto mt-1">
+                      Final video/graphic is being produced by the team. Review the planned hook, occasion, and script below and share your suggestions.
+                    </p>
                   </div>
-                )}
-              </div>
+                  {selectedItem.reference_url && (
+                    <div className="pt-2">
+                      <a
+                        href={selectedItem.reference_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-600/30 text-blue-300 border border-blue-400/40 text-xs font-bold hover:bg-blue-600/50 transition"
+                      >
+                        <span>View Inspiration / Benchmark Link →</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex justify-center items-center">
+                  {selectedItem.media_type === 'reel' ? (
+                    <div className="w-full max-w-xs py-4 flex flex-col items-center">
+                      <span className="text-[10px] text-slate-400 mb-2 font-mono flex items-center space-x-1">
+                        <Video className="w-3.5 h-3.5 text-purple-400" />
+                        <span>9:16 Instagram Reel Preview</span>
+                      </span>
+                      <video
+                        controls
+                        autoPlay
+                        loop
+                        playsInline
+                        className="w-64 h-96 object-cover rounded-xl shadow-2xl border border-slate-800"
+                        src={selectedItem.media_url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full max-h-72 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={selectedItem.media_url || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80'}
+                        alt={selectedItem.content_pillar}
+                        className="max-h-72 w-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Brief & Script */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">

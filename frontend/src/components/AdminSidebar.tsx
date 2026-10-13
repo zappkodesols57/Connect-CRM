@@ -26,6 +26,9 @@ interface AdminSidebarProps {
   onOpenPlanPost: () => void;
   onExportExcel: () => void;
   onSignOut: () => void;
+  onOpenChat?: () => void;
+  onOpenShoots?: () => void;
+  onOpenGrowth?: () => void;
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -38,6 +41,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onOpenPlanPost,
   onExportExcel,
   onSignOut,
+  onOpenChat,
+  onOpenShoots,
+  onOpenGrowth,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -200,6 +206,46 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               {!isCollapsed && <span className="whitespace-nowrap">Team & Attendance</span>}
             </div>
           </button>
+
+          {/* Agency Operations Launchers */}
+          {onOpenChat && (
+            <button
+              onClick={onOpenChat}
+              className={`w-full flex items-center px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-indigo-300 hover:bg-indigo-950/40 transition cursor-pointer ${
+                isCollapsed ? 'justify-center' : 'space-x-2.5'
+              }`}
+              title="Internal Agency Chat"
+            >
+              <MessageSquare className="w-4 h-4 text-indigo-400 shrink-0" />
+              {!isCollapsed && <span className="whitespace-nowrap">Agency Chat</span>}
+            </button>
+          )}
+
+          {onOpenShoots && (
+            <button
+              onClick={onOpenShoots}
+              className={`w-full flex items-center px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-amber-300 hover:bg-amber-950/40 transition cursor-pointer ${
+                isCollapsed ? 'justify-center' : 'space-x-2.5'
+              }`}
+              title="Shoot Missions"
+            >
+              <CalendarCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              {!isCollapsed && <span className="whitespace-nowrap">Shoot Missions</span>}
+            </button>
+          )}
+
+          {onOpenGrowth && (
+            <button
+              onClick={onOpenGrowth}
+              className={`w-full flex items-center px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-purple-300 hover:bg-purple-950/40 transition cursor-pointer ${
+                isCollapsed ? 'justify-center' : 'space-x-2.5'
+              }`}
+              title="Social Media Growth"
+            >
+              <BarChart3 className="w-4 h-4 text-purple-400 shrink-0" />
+              {!isCollapsed && <span className="whitespace-nowrap">Follower Growth</span>}
+            </button>
+          )}
         </div>
 
         {/* Client Fast-Switch Section */}
