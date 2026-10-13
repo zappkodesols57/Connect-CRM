@@ -57,6 +57,9 @@ const MainApp: React.FC = () => {
   // Master clients state initialized with realistic data imported from Oct Calender 2026.xlsx
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
 
+  // Agency Employees state with dynamic role and permission management
+  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
+
   // Authentication session
   const [auth, setAuth] = useState<AuthSession | null>(null);
 
@@ -128,7 +131,7 @@ const MainApp: React.FC = () => {
       navigate('/client');
     } else {
       const emp =
-        INITIAL_EMPLOYEES.find((e) => e.id === loginData.employeeId) || INITIAL_EMPLOYEES[1];
+        employees.find((e) => e.id === loginData.employeeId) || employees[1];
       setAuth({
         role: 'team',
         employee: emp,
@@ -403,6 +406,26 @@ const MainApp: React.FC = () => {
     setShootSchedules((prev) => [created, ...prev]);
   };
 
+  // Handler for Admin toggling manager/task assignment access for an employee
+  const handleToggleManagerAccess = (employeeId: number) => {
+    setEmployees((prev) =>
+      prev.map((emp) => {
+        if (emp.id !== employeeId) return emp;
+        const newIsManager = !(emp.is_manager || emp.can_assign_tasks);
+        const updated: Employee = {
+          ...emp,
+          is_manager: newIsManager,
+          can_assign_tasks: newIsManager,
+        };
+        // Also update live session if this employee is currently logged in
+        if (auth?.role === 'team' && auth.employee?.id === employeeId) {
+          setAuth((prevAuth) => (prevAuth ? { ...prevAuth, employee: updated } : null));
+        }
+        return updated;
+      })
+    );
+  };
+
   // Helper to determine active user identity and role for internal chat drawer
   const getCurrentChatUser = () => {
     if (auth?.role === 'admin') {
@@ -414,7 +437,11 @@ const MainApp: React.FC = () => {
       };
     }
     if (auth?.role === 'team' && auth.employee) {
-      const isMgr = Boolean(auth.employee.is_manager || auth.employee.designation?.toLowerCase().includes('manager'));
+      const isMgr = Boolean(
+        auth.employee.can_assign_tasks ??
+        auth.employee.is_manager ??
+        auth.employee.designation?.toLowerCase().includes('manager')
+      );
       return {
         id: auth.employee.id,
         name: `${auth.employee.first_name} ${auth.employee.last_name}`,
@@ -678,7 +705,7 @@ const MainApp: React.FC = () => {
         <Route path="/terms" element={<TermsOfService />} />
         
         {/* Landing Hub */}
-        <Route path="/" element={<LandingHubPage clients={clients} employees={INITIAL_EMPLOYEES} />} />
+        <Route path="/" element={<LandingHubPage clients={clients} employees={employees} />} />
 
         {/* Dedicated Login Routes */}
         <Route
@@ -736,7 +763,7 @@ const MainApp: React.FC = () => {
                   }}
                   onExportExcel={handleExportExcel}
                   onSignOut={handleSignOut}
-                  teamCount={INITIAL_EMPLOYEES.length}
+                  teamCount={employees.length}
                   onOpenChat={() => {
                     setChatInitialClient('ALL');
                     setIsChatOpen(true);
@@ -749,7 +776,7 @@ const MainApp: React.FC = () => {
                   {adminTab === 'dashboard' && (
                     <AdminDashboard
                       clients={clients}
-                      employees={INITIAL_EMPLOYEES}
+                      employees={employees}
                       onOpenClient={(client) => {
                         setAdminSelectedClient(client);
                         setAdminTab('calendars');
@@ -810,11 +837,12 @@ const MainApp: React.FC = () => {
 
                   {adminTab === 'team' && (
                     <AdminTeamView
-                      employees={INITIAL_EMPLOYEES}
+                      employees={employees}
                       clients={clients}
                       onFilterEmployeeTasks={() => {
                         setAdminTab('calendars');
                       }}
+                      onToggleManagerAccess={handleToggleManagerAccess}
                     />
                   )}
                 </main>
@@ -832,6 +860,7 @@ const MainApp: React.FC = () => {
             auth?.role === 'team' && auth.employee ? (
               <TeamPortalView
                 currentEmployee={auth.employee}
+                employees={employees}
                 clients={clients}
                 adHocTasks={adHocTasks}
                 onUpdateCalendarItem={handleUpdateCalendarItem}

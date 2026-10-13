@@ -25,6 +25,7 @@ import { INITIAL_EMPLOYEES } from '../data/mockData';
 
 interface TeamPortalViewProps {
   currentEmployee: Employee;
+  employees?: Employee[];
   clients: Client[];
   adHocTasks: AdHocTask[];
   onUpdateCalendarItem: (item: Partial<CalendarItem>) => void;
@@ -39,6 +40,7 @@ interface TeamPortalViewProps {
 
 export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   currentEmployee,
+  employees,
   clients,
   adHocTasks,
   onUpdateCalendarItem,
@@ -50,7 +52,13 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   onOpenShoots,
   onOpenGrowth,
 }) => {
-  const isManager = Boolean(currentEmployee.is_manager || currentEmployee.designation?.toLowerCase().includes('manager'));
+  const availableEmployees = employees || INITIAL_EMPLOYEES;
+  const isManager = Boolean(
+    currentEmployee.can_assign_tasks ??
+    currentEmployee.is_manager ??
+    currentEmployee.designation?.toLowerCase().includes('manager')
+  );
+  const canAssignTasks = isManager;
   const [activeTab, setActiveTab] = useState<'deliverables' | 'adhoc' | 'calendar' | 'attendance'>('deliverables');
   const [timeScope, setTimeScope] = useState<'TODAY' | 'ALL'>('ALL');
   const [clientFilter, setClientFilter] = useState<string>('ALL');
@@ -188,7 +196,7 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
     e.preventDefault();
     const cl = clients.find((c) => c.id === newTaskClient);
     const assignedEmp = isManager
-      ? INITIAL_EMPLOYEES.find((emp) => emp.id === assignedTeammateId) || currentEmployee
+      ? availableEmployees.find((emp) => emp.id === assignedTeammateId) || currentEmployee
       : currentEmployee;
 
     onCreateAdHocTask({
@@ -255,6 +263,11 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   {currentEmployee.designation}
                 </span>
+                {canAssignTasks && (
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-200 border border-purple-400/40">
+                    👑 Manager (Task Delegation Rights)
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 flex items-center space-x-2">
                 <span>{currentEmployee.team_group}</span>
@@ -666,13 +679,20 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
                   Non-calendar tasks assigned by social media managers (shoots, audits, bio revamps).
                 </p>
               </div>
-              <button
-                onClick={() => setIsNewTaskModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 transition cursor-pointer shadow-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Assign New Task</span>
-              </button>
+              {canAssignTasks ? (
+                <button
+                  onClick={() => setIsNewTaskModalOpen(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Assign Task to Teammate (Manager)</span>
+                </button>
+              ) : (
+                <div className="px-3.5 py-1.5 bg-slate-100 rounded-xl text-slate-500 text-[11px] font-medium flex items-center space-x-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  <span>Task assignments managed by designated Agency Leads</span>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1056,9 +1076,9 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
                     onChange={(e) => setAssignedTeammateId(Number(e.target.value))}
                     className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 bg-white font-medium text-slate-800"
                   >
-                    {INITIAL_EMPLOYEES.map((emp) => (
+                    {availableEmployees.map((emp) => (
                       <option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name} · {emp.designation}
+                        {emp.first_name} {emp.last_name} · {emp.designation} {emp.is_manager || emp.can_assign_tasks ? '(Lead)' : ''}
                       </option>
                     ))}
                   </select>

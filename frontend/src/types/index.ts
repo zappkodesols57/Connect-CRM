@@ -59,6 +59,7 @@ export interface Employee {
   designation: string;
   avatar_color?: string;
   is_manager?: boolean;
+  can_assign_tasks?: boolean;
 }
 
 export interface MonthlyCalendar {

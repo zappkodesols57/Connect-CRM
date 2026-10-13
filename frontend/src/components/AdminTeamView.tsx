@@ -9,6 +9,9 @@ import {
   CheckCircle2,
   ExternalLink,
   Sparkles,
+  ShieldCheck,
+  Shield,
+  Check,
 } from 'lucide-react';
 import { Employee, Client } from '../types';
 
@@ -16,12 +19,14 @@ interface AdminTeamViewProps {
   employees: Employee[];
   clients: Client[];
   onFilterEmployeeTasks: (employeeId: number) => void;
+  onToggleManagerAccess?: (employeeId: number) => void;
 }
 
 export const AdminTeamView: React.FC<AdminTeamViewProps> = ({
   employees,
   clients,
   onFilterEmployeeTasks,
+  onToggleManagerAccess,
 }) => {
   // Calculate workload per employee across all clients
   const getEmployeeStats = (empId: number) => {
@@ -69,13 +74,15 @@ export const AdminTeamView: React.FC<AdminTeamViewProps> = ({
 
         <div className="flex items-center space-x-3 bg-slate-50 px-4 py-3 rounded-2xl border border-slate-200 text-xs">
           <div>
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Department</span>
-            <span className="text-sm font-extrabold text-slate-800">Social Media Team</span>
+            <span className="text-slate-400 block text-[10px] font-bold uppercase">Staff Count</span>
+            <span className="text-sm font-extrabold text-slate-800">{employees.length} Members</span>
           </div>
           <div className="h-6 w-px bg-slate-200" />
           <div>
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Staff Count</span>
-            <span className="text-sm font-extrabold text-emerald-600">{employees.length} Members</span>
+            <span className="text-slate-400 block text-[10px] font-bold uppercase">Manager Access</span>
+            <span className="text-sm font-extrabold text-indigo-600">
+              {employees.filter((e) => e.is_manager || e.can_assign_tasks).length} with Assignment Rights
+            </span>
           </div>
         </div>
       </div>
@@ -163,6 +170,69 @@ export const AdminTeamView: React.FC<AdminTeamViewProps> = ({
                       Active on: {stats.clients.join(', ')}
                     </div>
                   )}
+                </div>
+
+                {/* Manager Access & Task Assignment Permission Control */}
+                <div
+                  className={`mt-4 p-3.5 rounded-xl border transition-all ${
+                    emp.is_manager || emp.can_assign_tasks
+                      ? 'bg-gradient-to-r from-indigo-50/70 to-purple-50/70 border-indigo-200'
+                      : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                          emp.is_manager || emp.can_assign_tasks
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {emp.is_manager || emp.can_assign_tasks ? (
+                          <ShieldCheck className="w-4 h-4" />
+                        ) : (
+                          <Shield className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <span
+                          className={`text-xs font-bold block leading-tight ${
+                            emp.is_manager || emp.can_assign_tasks ? 'text-indigo-900' : 'text-slate-700'
+                          }`}
+                        >
+                          {emp.is_manager || emp.can_assign_tasks
+                            ? 'Manager (Assigns Tasks)'
+                            : 'Team Member (Execution)'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">
+                          {emp.is_manager || emp.can_assign_tasks
+                            ? 'Can delegate & assign tasks'
+                            : 'Executes assigned work'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Toggle Switch Button */}
+                    <button
+                      type="button"
+                      onClick={() => onToggleManagerAccess?.(emp.id)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        emp.is_manager || emp.can_assign_tasks ? 'bg-indigo-600' : 'bg-slate-300'
+                      }`}
+                      title={
+                        emp.is_manager || emp.can_assign_tasks
+                          ? 'Click to revoke Manager task assignment rights'
+                          : 'Click to grant Manager task assignment rights'
+                      }
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          emp.is_manager || emp.can_assign_tasks ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
 
