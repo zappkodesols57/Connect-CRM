@@ -183,6 +183,16 @@ const MainApp: React.FC = () => {
           return cal;
         });
 
+        if (!itemFound && updatedItem.calendar) {
+          const calIdx = updatedCalendars.findIndex(cal => cal.id === updatedItem.calendar);
+          if (calIdx >= 0) {
+            const targetCal = updatedCalendars[calIdx];
+            const newItems = [...(targetCal.items || []), updatedItem as CalendarItem];
+            updatedCalendars[calIdx] = { ...targetCal, items: newItems, total_items: newItems.length };
+            itemFound = true;
+          }
+        }
+
         if (!itemFound && adminSelectedClient && adminSelectedClient.id === c.id) {
           const firstCal = updatedCalendars[0];
           const newItems = [...(firstCal.items || []), updatedItem as CalendarItem];
@@ -876,6 +886,10 @@ const MainApp: React.FC = () => {
                 }}
                 onOpenShoots={() => setIsShootModalOpen(true)}
                 onOpenGrowth={() => setIsSocialModalOpen(true)}
+                onOpenExcelImport={(clientId) => {
+                  setExcelImportClientId(clientId);
+                  setIsExcelImportOpen(true);
+                }}
               />
             ) : (
               <Navigate to="/team/login" replace />

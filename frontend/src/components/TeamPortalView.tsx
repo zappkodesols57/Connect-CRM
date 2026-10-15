@@ -19,8 +19,20 @@ import {
   ExternalLink,
   Sparkles,
   LogOut,
+  User,
+  FileSpreadsheet,
 } from 'lucide-react';
-import { Client, CalendarItem, Employee, AdHocTask, ItemStatus, CalendarItemNote } from '../types';
+import {
+  Client,
+  CalendarItem,
+  Employee,
+  AdHocTask,
+  ItemStatus,
+  CalendarItemNote,
+  MediaFormat,
+  PostCategory,
+  PriorityLevel,
+} from '../types';
 import { INITIAL_EMPLOYEES } from '../data/mockData';
 
 interface TeamPortalViewProps {
@@ -36,6 +48,7 @@ interface TeamPortalViewProps {
   onOpenChat?: (clientName?: string) => void;
   onOpenShoots?: () => void;
   onOpenGrowth?: () => void;
+  onOpenExcelImport?: (clientId: number) => void;
 }
 
 export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
@@ -51,6 +64,7 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   onOpenChat,
   onOpenShoots,
   onOpenGrowth,
+  onOpenExcelImport,
 }) => {
   const availableEmployees = employees || INITIAL_EMPLOYEES;
   const isManager = Boolean(
@@ -66,8 +80,26 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Selected client for read-only calendar view
+  // Selected client for calendar view
   const [selectedCalendarClientId, setSelectedCalendarClientId] = useState<number>(clients[0]?.id || 1);
+  const [selectedCalendarId, setSelectedCalendarId] = useState<number>(0);
+
+  // Manager: Add / Plan Calendar Item modal state
+  const [isPlanCalendarModalOpen, setIsPlanCalendarModalOpen] = useState(false);
+  const [planDayDate, setPlanDayDate] = useState('2026-10-15');
+  const [planDayTime, setPlanDayTime] = useState('11:00 AM');
+  const [planFormat, setPlanFormat] = useState<MediaFormat>('REEL');
+  const [planCategory, setPlanCategory] = useState<PostCategory>('REGULAR');
+  const [planPriority, setPlanPriority] = useState<PriorityLevel>('NORMAL');
+  const [planContentPillar, setPlanContentPillar] = useState('');
+  const [planSpecialDay, setPlanSpecialDay] = useState('');
+  const [planVisualBrief, setPlanVisualBrief] = useState('');
+  const [planReelScript, setPlanReelScript] = useState('');
+  const [planCaption, setPlanCaption] = useState('');
+  const [planReferenceUrl, setPlanReferenceUrl] = useState('');
+  const [planAssignedTeammateId, setPlanAssignedTeammateId] = useState<number>(
+    availableEmployees[1]?.id || availableEmployees[0]?.id || 1600
+  );
 
   // Note modal state for internal team queries on calendar dates
   const [noteModalItem, setNoteModalItem] = useState<{ item: CalendarItem; clientName: string } | null>(null);
@@ -213,8 +245,63 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
     });
     setIsNewTaskModalOpen(false);
     setNewTaskTitle('');
-    setNewTaskDesc('');
-    setNewTaskReferenceUrl('');
+  };
+
+  // Manager handler: Plan new deliverable and assign to team member
+  const handleSaveCalendarItem = (e: React.FormEvent, calendarId: number) => {
+    e.preventDefault();
+    if (!planContentPillar.trim()) return;
+
+    const assignedEmployee = availableEmployees.find((e) => e.id === planAssignedTeammateId) || null;
+    const dateObj = new Date(planDayDate);
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = isNaN(dateObj.getTime()) ? 'Thursday' : dayNames[dateObj.getDay()];
+    const dayNum = parseInt(planDayDate.split('-')[2] || '1', 10);
+
+    const newItem: Partial<CalendarItem> = {
+      id: Date.now(),
+      calendar: calendarId,
+      sr_no: dayNum,
+      scheduled_date: planDayDate,
+      scheduled_time: planDayTime,
+      day_of_week: dayName,
+      special_day: planSpecialDay.trim() || null,
+      content_pillar: planContentPillar.trim(),
+      format: planFormat,
+      post_category: planCategory,
+      priority: planPriority,
+      visual_brief: planVisualBrief.trim() || null,
+      reel_bytes_script: planReelScript.trim() || null,
+      caption: planCaption.trim() || null,
+      reference_url: planReferenceUrl.trim() || null,
+      status: 'READY_FOR_CLIENT',
+      media_type: planFormat === 'REEL' ? 'reel' : planFormat === 'CAROUSEL' ? 'carousel' : 'image',
+      media_url:
+        planFormat === 'REEL'
+          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+          : 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80',
+      uploaded_asset_url: null,
+      assigned_to: assignedEmployee,
+    };
+
+    onUpdateCalendarItem(newItem);
+    setIsPlanCalendarModalOpen(false);
+    setPlanContentPillar('');
+    setPlanSpecialDay('');
+    setPlanVisualBrief('');
+    setPlanReelScript('');
+    setPlanCaption('');
+    setPlanReferenceUrl('');
+  };
+
+  // Quick reassign teammate on calendar item
+  const handleReassignCalendarItem = (item: CalendarItem, newTeammateId: number) => {
+    const newEmp = availableEmployees.find((e) => e.id === newTeammateId) || null;
+    onUpdateCalendarItem({
+      id: item.id,
+      calendar: item.calendar,
+      assigned_to: newEmp,
+    });
   };
 
   // Add internal query/note on a calendar date
@@ -765,129 +852,257 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
           </div>
         )}
 
-        {/* Read-Only Calendar View with Internal Notes / Queries */}
+        {/* Calendar Workspace: Manager Plan & Assign or Team Read-Only with Queries */}
         {activeTab === 'calendar' && (
           <div className="space-y-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Agency Master Calendar (Read-Only)</h2>
-                <p className="text-xs text-slate-500">
-                  Inspect client schedules & raise internal notes/queries on specific dates for managers and admin.
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold text-slate-700">Client:</span>
-                <select
-                  value={selectedCalendarClientId}
-                  onChange={(e) => setSelectedCalendarClientId(Number(e.target.value))}
-                  className="border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 bg-white"
-                >
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             {(() => {
               const selectedClient = clients.find((c) => c.id === selectedCalendarClientId) || clients[0];
-              const cal = selectedClient?.calendars?.[0];
-              const calItems = cal?.items || [];
-
-              if (calItems.length === 0) {
-                return (
-                  <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 text-sm">
-                    No deliverables found for {selectedClient?.name}.
-                  </div>
-                );
-              }
+              const availableCalendars = selectedClient?.calendars || [];
+              const activeCal =
+                availableCalendars.find((c) => c.id === selectedCalendarId) ||
+                availableCalendars[0] ||
+                null;
+              const calItems = activeCal?.items || [];
 
               return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {calItems.map((it) => (
-                    <div
-                      key={it.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between shadow-xs hover:border-blue-400 transition space-y-3"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-black text-slate-900">
-                            Day {it.scheduled_date.split('-')[2]} · {it.day_of_week}
+                <>
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-base font-bold text-slate-900">
+                          {isManager ? 'Manager Calendar & Task Assignment Workspace' : 'Agency Master Calendar (Read-Only)'}
+                        </h2>
+                        {isManager && (
+                          <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            👑 Manager Controls Active
                           </span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              it.format === 'REEL'
-                                ? 'bg-purple-100 text-purple-700'
-                                : it.format === 'CAROUSEL'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-blue-100 text-blue-700'
-                            }`}
-                          >
-                            {it.format}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-xs text-slate-800">{it.content_pillar}</h4>
-                          {it.special_day && (
-                            <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                              ★ {it.special_day}
-                            </span>
-                          )}
-                          <p className="text-[11px] text-slate-500 line-clamp-2">
-                            {it.visual_brief || it.reel_bytes_script || it.caption || 'Creative brief pending.'}
-                          </p>
-                        </div>
-
-                        {it.reference_url && (
-                          <a
-                            href={it.reference_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center space-x-1 text-[10px] text-blue-600 font-bold hover:underline"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            <span>Inspiration / Benchmark URL</span>
-                          </a>
-                        )}
-
-                        {/* Team Notes / Queries Display */}
-                        {it.team_notes && it.team_notes.length > 0 && (
-                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1 mt-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                              Team Internal Notes ({it.team_notes.length}):
-                            </span>
-                            {it.team_notes.map((note) => (
-                              <div key={note.id} className="text-[11px] text-slate-700 border-l-2 border-indigo-400 pl-2 py-0.5">
-                                <span className="font-bold text-slate-900">{note.author}</span>{' '}
-                                <span className="text-[9px] text-slate-400">({note.role})</span>: {note.text}
-                              </div>
-                            ))}
-                          </div>
                         )}
                       </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {isManager
+                          ? 'Add deliverables, assign post duties to teammates, and sync client schedule milestones.'
+                          : 'Inspect client schedules & raise internal notes/queries on specific dates for managers and admin.'}
+                      </p>
+                    </div>
 
-                      {/* Action Button: Add Note / Question */}
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 font-semibold">{it.status}</span>
+                    {/* Filter & Action Controls */}
+                    <div className="flex items-center space-x-2.5 flex-wrap gap-2">
+                      {/* Client Selector */}
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-xs font-bold text-slate-600">Client:</span>
+                        <select
+                          value={selectedCalendarClientId}
+                          onChange={(e) => {
+                            const newClientId = Number(e.target.value);
+                            setSelectedCalendarClientId(newClientId);
+                            const newClient = clients.find((c) => c.id === newClientId);
+                            if (newClient?.calendars?.[0]) {
+                              setSelectedCalendarId(newClient.calendars[0].id);
+                            }
+                          }}
+                          className="border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 bg-white shadow-xs focus:ring-2 focus:ring-indigo-500"
+                        >
+                          {clients.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Month Calendar Selector */}
+                      {availableCalendars.length > 1 && (
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-xs font-bold text-slate-600">Month:</span>
+                          <select
+                            value={activeCal?.id || availableCalendars[0]?.id}
+                            onChange={(e) => setSelectedCalendarId(Number(e.target.value))}
+                            className="border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-indigo-700 bg-white shadow-xs focus:ring-2 focus:ring-indigo-500"
+                          >
+                            {availableCalendars.map((cal) => (
+                              <option key={cal.id} value={cal.id}>
+                                {cal.month} {cal.year} ({cal.status})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Manager Actions: Import Excel and Plan Post */}
+                      {isManager && (
+                        <div className="flex items-center space-x-2">
+                          {onOpenExcelImport && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenExcelImport(selectedClient.id)}
+                              className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer shadow-xs"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Import Excel</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const todayStr = new Date().toISOString().split('T')[0];
+                              setPlanDayDate(todayStr);
+                              setIsPlanCalendarModalOpen(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ Plan & Assign Post</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Calendar Items Grid */}
+                  {calItems.length === 0 ? (
+                    <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 text-sm space-y-3">
+                      <p>No deliverables planned yet for {selectedClient?.name} ({activeCal ? `${activeCal.month} ${activeCal.year}` : 'Active Calendar'}).</p>
+                      {isManager && (
                         <button
                           type="button"
                           onClick={() => {
-                            setNoteModalItem({ item: it, clientName: selectedClient.name });
-                            setQueryNoteText('');
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            setPlanDayDate(todayStr);
+                            setIsPlanCalendarModalOpen(true);
                           }}
-                          className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center space-x-1 transition cursor-pointer"
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition cursor-pointer"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>+ Add Query Note</span>
+                          + Plan First Deliverable
                         </button>
-                      </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {calItems.map((it) => (
+                        <div
+                          key={it.id}
+                          className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between shadow-xs hover:border-indigo-400 transition space-y-3"
+                        >
+                          <div className="space-y-2">
+                            {/* Card Header */}
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-slate-900">
+                                Day {it.scheduled_date.split('-')[2]} · {it.day_of_week}
+                              </span>
+                              <div className="flex items-center space-x-1.5">
+                                {it.post_category === 'EXTRA' && (
+                                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                                    ⚡ EXTRA
+                                  </span>
+                                )}
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    it.format === 'REEL'
+                                      ? 'bg-purple-100 text-purple-700'
+                                      : it.format === 'CAROUSEL'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-blue-100 text-blue-700'
+                                  }`}
+                                >
+                                  {it.format}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Pillar and Concept */}
+                            <div className="space-y-1">
+                              <h4 className="font-bold text-xs text-slate-800">{it.content_pillar}</h4>
+                              {it.special_day && (
+                                <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                  ★ {it.special_day}
+                                </span>
+                              )}
+                              <p className="text-[11px] text-slate-500 line-clamp-2">
+                                {it.visual_brief || it.reel_bytes_script || it.caption || 'Creative brief pending.'}
+                              </p>
+                            </div>
+
+                            {/* Reference URL */}
+                            {it.reference_url && (
+                              <a
+                                href={it.reference_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center space-x-1 text-[10px] text-blue-600 font-bold hover:underline"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                <span>Inspiration / Benchmark URL</span>
+                              </a>
+                            )}
+
+                            {/* Task Assignment Section */}
+                            <div className="pt-2 border-t border-slate-100">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-slate-400 font-semibold flex items-center space-x-1">
+                                  <User className="w-3 h-3 text-slate-400" />
+                                  <span>Assigned Teammate:</span>
+                                </span>
+                                {isManager ? (
+                                  <select
+                                    value={it.assigned_to?.id || 0}
+                                    onChange={(e) => handleReassignCalendarItem(it, Number(e.target.value))}
+                                    className="border border-indigo-200 rounded-lg px-2 py-1 text-[11px] font-bold text-indigo-900 bg-indigo-50/60 hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                  >
+                                    <option value={0}>Unassigned</option>
+                                    {availableEmployees.map((emp) => (
+                                      <option key={emp.id} value={emp.id}>
+                                        {emp.first_name} {emp.last_name} ({emp.designation.split(' ')[0]})
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="font-bold text-slate-700">
+                                    {it.assigned_to
+                                      ? `${it.assigned_to.first_name} ${it.assigned_to.last_name}`
+                                      : 'Unassigned'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Team Notes / Queries Display */}
+                            {it.team_notes && it.team_notes.length > 0 && (
+                              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1 mt-2">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                  Team Internal Notes ({it.team_notes.length}):
+                                </span>
+                                {it.team_notes.map((note) => (
+                                  <div key={note.id} className="text-[11px] text-slate-700 border-l-2 border-indigo-400 pl-2 py-0.5">
+                                    <span className="font-bold text-slate-900">{note.author}</span>{' '}
+                                    <span className="text-[9px] text-slate-400">({note.role})</span>: {note.text}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Card Footer Actions */}
+                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-400 font-semibold">{it.status}</span>
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNoteModalItem({ item: it, clientName: selectedClient.name });
+                                  setQueryNoteText('');
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center space-x-1 transition cursor-pointer"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>+ Note / Query</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               );
             })()}
           </div>
@@ -1185,6 +1400,190 @@ export const TeamPortalView: React.FC<TeamPortalViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manager Plan & Assign Calendar Deliverable Modal */}
+      {isPlanCalendarModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">
+                  Manager Workspace · Schedule Deliverable
+                </span>
+                <h3 className="font-bold text-base">Plan Post & Assign Teammate</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPlanCalendarModalOpen(false)}
+                className="text-slate-400 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {(() => {
+              const selectedClient = clients.find((c) => c.id === selectedCalendarClientId) || clients[0];
+              const availableCalendars = selectedClient?.calendars || [];
+              const activeCal =
+                availableCalendars.find((c) => c.id === selectedCalendarId) ||
+                availableCalendars[0] ||
+                null;
+              const calendarId = activeCal?.id || (selectedClient.id * 100 + 1);
+
+              return (
+                <form
+                  onSubmit={(e) => handleSaveCalendarItem(e, calendarId)}
+                  className="p-6 overflow-y-auto space-y-4 text-xs flex-1"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Scheduled Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={planDayDate}
+                        onChange={(e) => setPlanDayDate(e.target.value)}
+                        className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Publish Time</label>
+                      <input
+                        type="text"
+                        value={planDayTime}
+                        onChange={(e) => setPlanDayTime(e.target.value)}
+                        placeholder="11:00 AM"
+                        className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Format</label>
+                      <select
+                        value={planFormat}
+                        onChange={(e) => setPlanFormat(e.target.value as MediaFormat)}
+                        className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
+                      >
+                        <option value="REEL">🎬 Reel (9:16 Video)</option>
+                        <option value="IMAGE">🖼️ Single Post (Graphic)</option>
+                        <option value="CAROUSEL">📑 Multi-Slide Carousel</option>
+                        <option value="STORY">📱 Story</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Category Quota</label>
+                      <select
+                        value={planCategory}
+                        onChange={(e) => setPlanCategory(e.target.value as PostCategory)}
+                        className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white font-medium"
+                      >
+                        <option value="REGULAR">📋 Regular Contract Quota</option>
+                        <option value="EXTRA">⚡ Extra / On-Demand Request</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Teammate Assignment - Core Feature */}
+                  <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-2">
+                    <label className="font-bold text-indigo-950 block">
+                      Assign To Teammate (Execution Duty)
+                    </label>
+                    <select
+                      value={planAssignedTeammateId}
+                      onChange={(e) => setPlanAssignedTeammateId(Number(e.target.value))}
+                      className="w-full border border-indigo-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 bg-white font-bold text-indigo-900 shadow-xs"
+                    >
+                      {availableEmployees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.first_name} {emp.last_name} · {emp.designation}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-indigo-700">
+                      This post will directly sync to this teammate's personal deliverables feed.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Content Pillar / Main Topic *</label>
+                    <input
+                      type="text"
+                      required
+                      value={planContentPillar}
+                      onChange={(e) => setPlanContentPillar(e.target.value)}
+                      placeholder="e.g. Pediatric Oncology Milestone / Doctor Byte"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Special Occasion (Optional)</label>
+                    <input
+                      type="text"
+                      value={planSpecialDay}
+                      onChange={(e) => setPlanSpecialDay(e.target.value)}
+                      placeholder="e.g. World Spine Day / Diwali Offer"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Inspiration / Benchmark URL</label>
+                    <input
+                      type="url"
+                      value={planReferenceUrl}
+                      onChange={(e) => setPlanReferenceUrl(e.target.value)}
+                      placeholder="https://instagram.com/reel/... (Benchmark link)"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Visual Concept / Creative Brief</label>
+                    <textarea
+                      rows={2}
+                      value={planVisualBrief}
+                      onChange={(e) => setPlanVisualBrief(e.target.value)}
+                      placeholder="Instructions for the graphic designer or editor..."
+                      className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Reel Hook & Script / Caption</label>
+                    <textarea
+                      rows={2}
+                      value={planReelScript}
+                      onChange={(e) => setPlanReelScript(e.target.value)}
+                      placeholder="Hook: 'Did you know 80% of spine issues...' Script byte..."
+                      className="w-full border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsPlanCalendarModalOpen(false)}
+                      className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-xs transition"
+                    >
+                      Add Deliverable & Assign
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
           </div>
         </div>
       )}
