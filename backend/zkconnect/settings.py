@@ -93,15 +93,29 @@ TEMPLATES = [
 WSGI_APPLICATION = "zkconnect.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Database configuration: Supports PostgreSQL (production) with SQLite fallback (development)
+# Set USE_POSTGRES=True or DB_ENGINE=postgresql in .env to use PostgreSQL
+USE_POSTGRES = os.getenv("USE_POSTGRES", "False").lower() in ("true", "1", "yes") or os.getenv("DB_ENGINE", "").lower() in ("postgres", "postgresql")
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if USE_POSTGRES:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "connect_crm"),
+            "USER": os.getenv("DB_USER", "postgres"),
+            "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
